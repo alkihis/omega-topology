@@ -1,10 +1,6 @@
 import { Component, h, Prop, Listen, Element, Method, State, Event, EventEmitter } from '@stencil/core';
-import FrontTopology from '../../utils/FrontTopology';
 import { TrimProperties } from '../../utils/types';
 import { BASE_COVERAGE, BASE_IDENTITY, BASE_SIMILARITY, BASE_E_VALUE } from '../../utils/utils';
-
-// import * as jstree from '../../..//node_modules/jstree/dist/jstree';
-// import $ from 'jquery';
 
 @Component({
   tag: "omega-trim",
@@ -59,9 +55,17 @@ export class OmegaTrim {
     this.e_value = (event.target as HTMLInputElement).value;
   }
 
+  protected convertEValue() {
+    return 10 ** -Number(this.e_value);
+  }
+
   emitChange() {
     console.log("changed")
-    this.propChange.emit({ identity: Number(this.identity), e_value: Number(this.e_value), coverage: Number(this.coverage), similarity: Number(this.similarity) });
+    this.propChange.emit({ identity: Number(this.identity), e_value: this.convertEValue(), coverage: Number(this.coverage), similarity: Number(this.similarity) });
+  }
+
+  toggleVision() {
+    this.el.classList.toggle('hide-elements');
   }
 
   /**
@@ -69,27 +73,32 @@ export class OmegaTrim {
    */
   render() {
     return (
-      <form base-form onChange={() => this.emitChange()}>
-        <label>
-          Identity: {this.identity}%
-          <input type="range" value={this.identity} min="0" max="100" step="1" onChange={e => this.handleIdentity(e)}></input>
-        </label>
+      <div>
+        <a class="clickable" onClick={() => this.toggleVision()}>
+          <span class="on-hidden">Show</span><span class="hiddable">Hide</span>
+        </a>
+        <form class="hiddable" base-form onChange={() => this.emitChange()}>
+          <label>
+            Identity: {this.identity}%
+            <input type="range" value={this.identity} min="0" max="100" step="1" onInput={e => this.handleIdentity(e)}></input>
+          </label>
 
-        <label>
-          Similarity: {this.similarity}%
-          <input type="range" value={this.similarity} min="0" max="100" step="1" onChange={e => this.handleSimilarity(e)}></input>
-        </label>
+          <label>
+            Similarity: {this.similarity}%
+            <input type="range" value={this.similarity} min="0" max="100" step="1" onInput={e => this.handleSimilarity(e)}></input>
+          </label>
 
-        <label>
-          Coverage: {this.coverage}%
-          <input type="range" value={this.coverage} min="0" max="100" step="1" onChange={e => this.handleCoverage(e)}></input>
-        </label>
+          <label>
+            Coverage: {this.coverage}%
+            <input type="range" value={this.coverage} min="0" max="100" step="1" onInput={e => this.handleCoverage(e)}></input>
+          </label>
 
-        <label>
-          E-value: {this.e_value}
-          <input type="range" value={this.e_value} min="0.0001" max="1" onChange={e => this.handleEvalue(e)}></input>
-        </label>
-      </form>
+          <label>
+            E-value: 10^-{this.e_value}
+            <input type="range" value={this.e_value} min="1" max="10" onInput={e => this.handleEvalue(e)}></input>
+          </label>
+        </form>
+      </div>
     );
   }
 } 

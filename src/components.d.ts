@@ -13,6 +13,9 @@ import {
   MakeGraphEvent,
   TrimProperties,
 } from './utils/types';
+import {
+  TreeAsAPI,
+} from '@mmsb/selectionnable-tree';
 
 export namespace Components {
   interface OmegaGraph {
@@ -34,6 +37,17 @@ export namespace Components {
     */
     'specie': string;
   }
+  interface OmegaOnto {
+    'getData': () => Promise<import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").TreeLike[]>;
+    'setData': (d: import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").SubNode) => Promise<void>;
+    'unsetData': () => Promise<void>;
+  }
+  interface OmegaPrune {}
+  interface OmegaTaxo {
+    'getData': () => Promise<import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").TreeLike[]>;
+    'setData': (d: import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").SubNode) => Promise<void>;
+    'unsetData': () => Promise<void>;
+  }
   interface OmegaTrim {}
 }
 
@@ -46,6 +60,24 @@ declare global {
     new (): HTMLOmegaGraphElement;
   };
 
+  interface HTMLOmegaOntoElement extends Components.OmegaOnto, HTMLStencilElement {}
+  var HTMLOmegaOntoElement: {
+    prototype: HTMLOmegaOntoElement;
+    new (): HTMLOmegaOntoElement;
+  };
+
+  interface HTMLOmegaPruneElement extends Components.OmegaPrune, HTMLStencilElement {}
+  var HTMLOmegaPruneElement: {
+    prototype: HTMLOmegaPruneElement;
+    new (): HTMLOmegaPruneElement;
+  };
+
+  interface HTMLOmegaTaxoElement extends Components.OmegaTaxo, HTMLStencilElement {}
+  var HTMLOmegaTaxoElement: {
+    prototype: HTMLOmegaTaxoElement;
+    new (): HTMLOmegaTaxoElement;
+  };
+
   interface HTMLOmegaTrimElement extends Components.OmegaTrim, HTMLStencilElement {}
   var HTMLOmegaTrimElement: {
     prototype: HTMLOmegaTrimElement;
@@ -53,16 +85,34 @@ declare global {
   };
   interface HTMLElementTagNameMap {
     'omega-graph': HTMLOmegaGraphElement;
+    'omega-onto': HTMLOmegaOntoElement;
+    'omega-prune': HTMLOmegaPruneElement;
+    'omega-taxo': HTMLOmegaTaxoElement;
     'omega-trim': HTMLOmegaTrimElement;
   }
 }
 
 declare namespace LocalJSX {
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
+    'onOmega-graph.rebuild_onto'?: (event: CustomEvent<string[]>) => void;
+    'onOmega-graph.rebuild_taxo'?: (event: CustomEvent<string[]>) => void;
+    'onPrune-add-node'?: (event: CustomEvent<any>) => void;
+    'onPrune-delete-node'?: (event: CustomEvent<any>) => void;
+    'onPrune-reset-nodes'?: (event: CustomEvent<void>) => void;
     /**
     * Espèce modélisée par le graphe
     */
     'specie'?: string;
+  }
+  interface OmegaOnto extends JSXBase.HTMLAttributes<HTMLOmegaOntoElement> {
+    'onOmega-onto.trim'?: (event: CustomEvent<string[]>) => void;
+  }
+  interface OmegaPrune extends JSXBase.HTMLAttributes<HTMLOmegaPruneElement> {
+    'onPrune-end-select-nodes'?: (event: CustomEvent<void>) => void;
+    'onPrune-select-nodes'?: (event: CustomEvent<void>) => void;
+  }
+  interface OmegaTaxo extends JSXBase.HTMLAttributes<HTMLOmegaTaxoElement> {
+    'onOmega-taxo.trim'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaTrim extends JSXBase.HTMLAttributes<HTMLOmegaTrimElement> {
     'onTrim-property-change'?: (event: CustomEvent<TrimProperties>) => void;
@@ -70,6 +120,9 @@ declare namespace LocalJSX {
 
   interface IntrinsicElements {
     'omega-graph': OmegaGraph;
+    'omega-onto': OmegaOnto;
+    'omega-prune': OmegaPrune;
+    'omega-taxo': OmegaTaxo;
     'omega-trim': OmegaTrim;
   }
 }

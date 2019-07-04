@@ -11,6 +11,7 @@ const FrontTopology = new class FrontTopology {
 
   protected mitab_total: number;
   protected mitab_downloaded = 0;
+  protected mitab_complete = false;
 
   protected socket: SocketIOClient.Socket;
   protected socket_promise: Promise<void> = undefined;
@@ -87,6 +88,8 @@ const FrontTopology = new class FrontTopology {
 
           this.socket.close();
 
+          this.mitab_complete = true;
+
           this.topology.linkMitabLines();
 
           resolve(this.topology);
@@ -107,8 +110,9 @@ const FrontTopology = new class FrontTopology {
     } as D3GraphBase;
   }
   
-  showGraph() {
-    this.topology.constructGraphFrom([]);
+  showGraph(reset = true) {
+    if (reset)
+      this.topology.constructGraphFrom([]);
 
     const el = document.querySelector('omega-graph');
 
@@ -117,15 +121,29 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
-  trim({
-    identity = 0,
-    similarity = 0,
-    coverage = 0,
-    experimental_detection_method = [],
-    taxons = [],
-    e_value = Infinity,
-    definitive = false
-  } = {}) {
+  ///// CACHE
+  protected _trim_cache: TrimOptions = {};
+  protected _prune_cache: [string[], number];
+
+  trim(options: TrimOptions = {}) {
+    if (options.keep_old !== false) {
+      // Récupère les données du cache
+      options = Object.assign({}, this._trim_cache, options);
+    } 
+
+    console.log(options);
+
+    // Set des valeurs par défaut
+    const {
+      identity = 0,
+      similarity = 0,
+      coverage = 0,
+      experimental_detection_method = [],
+      taxons = [],
+      e_value = Infinity,
+      definitive = false
+    } = options;
+
     const [removed, total] = this.topology.trimEdges({
       simPct: similarity, idPct: identity, cvPct: coverage, definitive,
       exp_det_methods: experimental_detection_method, taxons, eValue: e_value
@@ -133,11 +151,40 @@ const FrontTopology = new class FrontTopology {
 
     console.log(removed, "removed from total", total);
 
+    // Sauvegarde le cache
+    this._trim_cache = {
+      identity, similarity, coverage, experimental_detection_method, taxons, e_value
+    };
+
+    if (this._prune_cache) {
+      this.prune(...this._prune_cache); return;
+    }
+
     this.showGraph();
+  }
+
+  prune(seeds: string[], distance = Infinity) {
+    this.topology.prune(distance, ...seeds);
+
+    this._prune_cache = [seeds, distance];
+
+    if (seeds.length === 0) {
+      this._prune_cache = undefined;
+    }
+
+    this.showGraph(false);
   }
 
   get topo() {
     return this.topology;
+  }
+
+  get taxo_ids() {
+    return this.topology.visible_taxonomy_ids_in_graph;
+  }
+
+  get onto_ids() {
+    return this.topology.visible_experimental_methods_in_graph;
   }
 
   get awaiter() {
@@ -151,3 +198,14 @@ const FrontTopology = new class FrontTopology {
 
 export default FrontTopology;
 window['fronttopology'] = FrontTopology;
+
+export interface TrimOptions {
+  identity?: number,
+  similarity?: number,
+  coverage?: number,
+  experimental_detection_method?: string[],
+  taxons?: string[],
+  e_value?: number,
+  definitive?: boolean,
+  keep_old?: boolean
+}

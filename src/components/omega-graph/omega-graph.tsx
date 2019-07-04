@@ -1,8 +1,10 @@
-import { Component, h, Prop, Listen, Element, Method } from '@stencil/core';
+import { Component, h, Prop, Listen, Element, Method, Event, EventEmitter, Watch } from '@stencil/core';
 import FrontTopology from '../../utils/FrontTopology';
 
 import ForceGraph3D from '3d-force-graph';
 import { D3GraphBase, D3Node, D3Link, MakeGraphEvent, TrimProperties } from '../../utils/types';
+import { BASE_SIMILARITY, BASE_COVERAGE, BASE_IDENTITY } from '../../utils/utils';
+import ReversibleKeyMap from 'reversible-key-map';
 
 // import * as jstree from '../../..//node_modules/jstree/dist/jstree';
 // import $ from 'jquery';
@@ -17,6 +19,26 @@ export class OmegaGraph {
   @Prop({ mutable: true }) specie: string = "r6";
   @Element() el: HTMLElement;
 
+  @Event({
+    eventName: "prune-add-node"
+  }) addSelectedNode: EventEmitter;
+
+  @Event({
+    eventName: "prune-delete-node"
+  }) removeSelectedNode: EventEmitter;
+
+  @Event({
+    eventName: "prune-reset-nodes"
+  }) resetSelectedNodes: EventEmitter<void>;
+
+  @Event({
+    eventName: "omega-graph.rebuild_taxo"
+  }) buildTaxoTree: EventEmitter<string[]>;
+
+  @Event({
+    eventName: "omega-graph.rebuild_onto"
+  }) buildOntoTree: EventEmitter<string[]>;
+
   public static readonly tag = "omega-graph";
 
   /** Noeuds actuellement en surbrillance dans le graphe  */
@@ -29,6 +51,11 @@ export class OmegaGraph {
   /** Graph 3D */
   protected three_d_graph: any = undefined;
 
+  protected in_selection = false;
+  
+  protected _actual_data: D3GraphBase;
+  protected _links_to_nodes: ReversibleKeyMap<string, string, D3Link> = new ReversibleKeyMap;
+
   /**
    * Initialisation du composant.
    */
@@ -40,9 +67,16 @@ export class OmegaGraph {
     // Construction du graphe
     console.log("Topology has been initialized.");
 
-    FrontTopology.trim({ similarity: 70, coverage: 30, identity: 40 });
+    FrontTopology.trim({ similarity: Number("50"), coverage: Number(BASE_COVERAGE), identity: Number(BASE_IDENTITY), definitive: true });
+    //FrontTopology.showGraph();
 
-    // FrontTopology.downloadMitabLines();
+    FrontTopology.downloadMitabLines()
+      .then(() => {
+        if (FrontTopology.percentage_mitab >= 100) {
+          this.buildTaxoTree.emit([...FrontTopology.taxo_ids]);
+          this.buildOntoTree.emit([...FrontTopology.onto_ids]);
+        }
+      });
   }
 
   async componentDidUnload() {
@@ -60,19 +94,115 @@ export class OmegaGraph {
     return <div graph-element></div>;
   }
 
-  /**
-   * Données actuellement chargées dans le graphe.
-   *
-   * @readonly
-   */
-  get actual_data() : D3GraphBase {
-    return this.three_d_graph.graphData();
+  protected clip(nodes: D3Node[], force = false) {
+    console.log(nodes);
+
+    for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
+      node.__threeObj.visible = force ? node.__threeObj.visible : false;
+
+      for (const centerNode of nodes) {
+        if (node.id === centerNode.id || this._links_to_nodes.hasCouple(node.id, centerNode.id)) {
+          // console.log('i will show ' + node.id);
+          node.__threeObj.visible = true;
+          break;
+        }
+      }
+    }
+
+    for (const link of (this.three_d_graph.graphData().links as D3Link[])) {
+      link.__lineObj.visible = force ? link.__lineObj.visible : false;
+    }
+
+    for (const centerNode of nodes) {
+      const linkByPartner = this._links_to_nodes.getAllFrom(centerNode.id);
+
+      if (linkByPartner)
+        for (const partner of linkByPartner.values()) {
+          partner.__lineObj.visible = true;
+        }
+    }
+  }
+
+  protected unclip() {
+    for (const n of this.three_d_graph.graphData().nodes) {
+      n.__threeObj.visible = true;
+    }
+
+    for (const l of this.three_d_graph.graphData().links) {
+      l.__lineObj.visible = true;
+    }
+  }
+
+  protected async registerLinks() {
+    const links = this.three_d_graph.graphData().links as D3Link[];
+
+    // Actualise les links
+    // DOIT attendre que la création des liens est effective
+    for (const l of links) {
+      if (typeof l.source.id === 'undefined') {
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        this.registerLinks();
+        return;
+      }
+
+      this._links_to_nodes.set(l.source.id, l.target.id, l);
+    }
+
+    console.log("Registred");
+  }
+
+  set actual_data(data: D3GraphBase) {
+    if (!this.actual_data) {
+      this.three_d_graph.graphData(data);
+      this._actual_data = data;
+
+      this.registerLinks();
+      return;
+    }
+
+    this._actual_data = data;
+
+    // Unclip all
+    this.unclip();
+
+    // Clip 
+    this.clip(data.nodes);
+
+    // Actualise les arbres si les infos mitab sont disponibles
+    if (FrontTopology.percentage_mitab >= 100) {
+      this.buildTaxoTree.emit([...FrontTopology.taxo_ids]);
+      this.buildOntoTree.emit([...FrontTopology.onto_ids]);
+    }
+  }
+
+  get actual_data() {
+    return this._actual_data;
   }
 
   @Listen('trim-property-change', { target: 'window' })
   handleTrimChange(event: CustomEvent<TrimProperties>) {
-    console.log("change")
     FrontTopology.trim(event.detail);
+  }
+
+  @Listen('omega-onto.trim', { target: 'window' })
+  handleOntologyChange(event: CustomEvent<string[]>) {
+    FrontTopology.trim({ experimental_detection_method: event.detail });
+  }
+
+  @Listen('omega-taxo.trim', { target: 'window' })
+  handleTaxonomyChange(event: CustomEvent<string[]>) {
+    FrontTopology.trim({ taxons: event.detail });
+  }
+
+  @Listen('prune-select-nodes', { target: 'window' })
+  startSelection() {
+    this.in_selection = true;
+  }
+
+  @Listen('prune-end-select-nodes', { target: 'window' })
+  stopSelection() {
+    this.in_selection = false;
   }
 
   /** 
@@ -85,6 +215,8 @@ export class OmegaGraph {
   @Listen('omega-graph-make-graph')
   @Method()
   async make3dGraph(data: MakeGraphEvent | D3GraphBase) {
+    this.resetSelectedNodes.emit();
+
     const graph_base = data instanceof CustomEvent ? (event as MakeGraphEvent).detail.graph_base : data;
 
     if (!graph_base) {
@@ -95,7 +227,7 @@ export class OmegaGraph {
 
     if (this.three_d_graph) {
       console.log("Rebuilding from existant");
-      this.three_d_graph.graphData(graph_base);
+      this.actual_data = graph_base;
     }
     else {
       const element = this.el.querySelector(`div[graph-element]`);
@@ -103,7 +235,6 @@ export class OmegaGraph {
 
       this.three_d_graph = ForceGraph3D() //.backgroundColor('#fff').linkWidth(2).linkColor("#000").linkOpacity(0.5)
         (element)
-        .graphData(graph_base)
         .nodeLabel('id')
         // .forceEngine('ngraph') // Fait planter cameraPosition
         .linkCurvature((l: D3Link) => l.target == l.source ? 0.5 : 0)
@@ -111,7 +242,20 @@ export class OmegaGraph {
         // .linkWidth((link: D3Link) => (this.highlighted_links.has(link) || this.hovered_links.has(link)) ? 4 : 0)
         .linkDirectionalParticles((link: D3Link) => (this.highlighted_links.has(link) || this.hovered_links.has(link)) ? 4 : 0)
         .linkDirectionalParticleWidth(4)
+        .cooldownTicks(300)
+        .cooldownTime(10000)
         .onNodeClick((node: D3Node) => {
+            if (this.in_selection) {
+              if (this.highlighted_nodes.has(node)) {
+                this.removeHighlighting(node.id);
+              }
+              else {
+                this.highlightNode(node.id);
+              }
+                
+              return;
+            }
+
             const distance = 120;
             const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
             console.log(distRatio)
@@ -139,6 +283,12 @@ export class OmegaGraph {
           this.updateGeometries();
         });
 
+      this.three_d_graph.onEngineStop(() => {
+          this.three_d_graph.cooldownTicks(0)
+            .cooldownTime(0)
+      });
+
+      this.actual_data = graph_base;
     }
   }
 
@@ -149,6 +299,11 @@ export class OmegaGraph {
     for (let i = 0; i < this.actual_data.nodes.length && indexes.size; i++) {
       if (indexes.has(this.actual_data.nodes[i].id)) {
         indexes.delete(this.actual_data.nodes[i].id);
+
+        if (!this.highlighted_nodes.has(this.actual_data.nodes[i])) {
+          this.addSelectedNode.emit(this.actual_data.nodes[i].id);
+        }
+
         this.highlighted_nodes.add(this.actual_data.nodes[i]);
       }
     }
@@ -182,6 +337,7 @@ export class OmegaGraph {
     const to_remove = [...this.highlighted_nodes].filter(e => nodes_to_remove.has(e.id));
 
     for (const nd of to_remove) {
+      this.removeSelectedNode.emit(nd.id);
       this.highlighted_nodes.delete(nd);
     }
 
@@ -206,7 +362,26 @@ export class OmegaGraph {
   }
 
   protected updateGeometries() {
+    // Sauvegarde des états des noeuds
+    const nodes_map = new Map<string, boolean>();
+    const links_map = new ReversibleKeyMap<string, string, boolean>();
+
+    for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
+      nodes_map.set(node.id, node.__threeObj.visible);
+    }
+    for (const link of (this.three_d_graph.graphData().links as D3Link[])) {
+      links_map.set(link.target.id, link.source.id, link.__lineObj.visible);
+    }
+
     this.three_d_graph.nodeRelSize(4); // trigger update of 3d objects in scene
+
+    // Restauration des états
+    for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
+      node.__threeObj.visible = nodes_map.get(node.id);
+    }
+    for (const link of (this.three_d_graph.graphData().links as D3Link[])) {
+      link.__lineObj.visible = links_map.get(link.target.id, link.source.id);
+    }
   }
 
   @Method()
@@ -257,6 +432,6 @@ export class OmegaGraph {
     nodes = nodes.filter((_, index) => !to_remove_index.has(index)); // Remove node
 
     nodes.forEach((n, idx) => { n.index = idx; }); // Reset node ids to array index
-    this.three_d_graph.graphData({ nodes, links });
+    this.actual_data = { nodes, links };
   }
 } 

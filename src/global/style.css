@@ -1,0 +1,36 @@
+.hide-elements .hiddable {
+    display: none;
+}
+
+.hide-elements .on-hidden {
+    display: inherit;
+}
+
+.on-hidden {
+    display: none;
+}
+
+.clickable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.trimmers-wrapper > * {
+    display: flex;
+    width: max-content;
+    pointer-events: initial;
+    margin: 5px;
+    z-index: 1;
+    font-family: 'Helvetica Neue', Helvetica, Arial;
+}  
+
+.trimmers-wrapper {
+    user-select: none;
+    touch-action: none;
+    pointer-events: none;
+    position: absolute;
+}
+
+body {
+    margin: 0;
+}

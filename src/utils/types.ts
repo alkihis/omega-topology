@@ -43,6 +43,7 @@ export interface D3Node {
     x: number;
     y: number;
     z: number;
+    __threeObj: any;
 }
 
 export interface D3Link {
@@ -51,7 +52,11 @@ export interface D3Link {
     source: D3Node;
     target: D3Node;
     value: string;
+    __lineObj: any;
 }
 
 export type MakeGraphEvent = CustomEvent<{ graph_base: D3GraphBase }>;
 export type TrimProperties = { identity: number, e_value: number, similarity: number, coverage: number };
+export type PruneProperties = string[];
+export type PruneAddProperty = string;
+export type PruneDeleteProperty = string;

@@ -22,5 +22,6 @@ export const config: Config = {
   nodeResolve: {
     browser: true,
     preferBuiltins: true // Workaround for https://github.com/ionic-team/stencil/issues/1326
-  }
+  },
+  globalStyle: 'src/global/style.css'
 };

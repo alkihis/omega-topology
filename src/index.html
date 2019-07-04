@@ -6,13 +6,23 @@
   <title>Stencil Component Starter</title>
 
   <script type="module" src="/build/omega-topology-graph.esm.js"></script>
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jstree/3.3.8/themes/default/style.min.css" />
   <script nomodule src="/build/omega-topology-graph.js"></script>
+
+  <link href="/build/omega-topology-graph.css" rel="stylesheet">
 
 </head>
 <body>
-
-  <omega-trim></omega-trim>
-  <omega-graph></omega-graph>
+  <div class="trimmers-wrapper">
+    <omega-trim></omega-trim>
+    <omega-prune></omega-prune>
+    <omega-taxo></omega-taxo>
+    <omega-onto></omega-onto>
+  </div>
+  
+  <div style="position: absolute; z-index: -1; top: 0">
+    <omega-graph></omega-graph>
+  </div>  
 
 </body>
 </html>
