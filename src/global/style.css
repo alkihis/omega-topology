@@ -25,12 +25,18 @@
 }  
 
 .trimmers-wrapper {
-    user-select: none;
-    touch-action: none;
-    pointer-events: none;
     position: absolute;
 }
 
 body {
     margin: 0;
+    pointer-events: none;
+}
+
+body > * {
+    pointer-events: initial;
+}
+
+.force-hide {
+    display: none !important;
 }

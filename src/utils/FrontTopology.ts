@@ -1,5 +1,5 @@
 import OmegaTopology from 'omega-topology-fullstack';
-import { OMEGA_TOPOLOGY_URL, SERVER_WEBSOCKET_URL } from './utils';
+import { OMEGA_TOPOLOGY_URL, SERVER_WEBSOCKET_URL, UNIPROT_URL } from './utils';
 import io from 'socket.io-client';
 import Timer from 'timerize';
 import { D3GraphBase } from './types';
@@ -25,7 +25,7 @@ const FrontTopology = new class FrontTopology {
   init(specie = "R6", auto_mitab_dl = false) {
     this.resetSocketIo();
 
-    this.topology = new OmegaTopology;
+    this.topology = new OmegaTopology(undefined, undefined, UNIPROT_URL);
     // @ts-ignore
     window["topology"] = this.topology;
     
@@ -36,9 +36,27 @@ const FrontTopology = new class FrontTopology {
 
     this.init_prom = this.topology.fromDownload(OMEGA_TOPOLOGY_URL + "/tree/" + this.current_specie)
       .then(() => { 
-        this.topology.constructGraphFrom([]);
+        this.topology.constructGraph();
         return this.topology;
       });
+
+    this.init_prom.then(async () => {
+      Timer.default_format = "s";
+      const t = new Timer;
+      console.log("Downloading GO Terms...");
+
+      await this.topo.downloadGoTerms(...this.topo.nodes.map(e => e[0]));
+
+      console.log("Go terms downloaded in", t.elapsed);
+
+      t.reset();
+
+      await this.topo.downloadNeededUniprotData();
+
+      console.log('Download complete in', t.elapsed, '.');
+
+      this.setupUniprotData();
+    });
 
     if (auto_mitab_dl) {
       return this.downloadMitabLines();
@@ -99,6 +117,73 @@ const FrontTopology = new class FrontTopology {
     });
   }
 
+  /**
+   * Graph must have been constructed !!
+   * @param visible_only 
+   */
+  setupUniprotData(visible_only = true) {
+    // GO Chart
+    const go = document.querySelector('go-chart');
+
+    const nodes = this.topo.nodes;
+
+    if (go) {
+      // Interface d'éléments contenant { id: string, value: number (nb itérations de ID), term: string (nom) }
+
+      const elements: { id: string, value: number, term: string }[] = [];
+      const visible_nodes = new Set(nodes.map(e => e[0]));
+
+      for (const [id, t_p] of this.topo.go_container.entries()) {
+        // Recherche uniquement les visibles
+        if (visible_only) {
+          let i = 0;
+          for (const e of t_p[1]) {
+            // Rechercher si ce noeud existe dans le graphe
+            if (visible_nodes.has(e)) {
+              i++;
+            }
+          }
+
+          if (i) {
+            elements.push({
+              id,
+              value: i,
+              term: t_p[0]
+            });
+          }
+        }
+        else {
+          elements.push({
+            id,
+            value: t_p[1].size,
+            term: t_p[0]
+          });
+        }
+      }
+
+      go.data = elements;
+    }
+
+    // Network table !
+    const table = document.querySelector('network-table');
+    if (table) {
+      // Get all visible nodes and their degree
+      // Tuples constructions
+      const tuples: [string, string, string][] = [];
+      tuples.push(['UniProt ID', 'Gene name', 'Degree']);
+
+      for (const [id, cmpt] of nodes) {
+        tuples.push([
+          id,
+          this.topo.uniprot_container.getTiny(id).gene_names[0],
+          cmpt.val.toString()
+        ]);
+      }
+
+      table.data = tuples;
+    }
+  }
+
   protected getD3GraphBaseFromOmegaTopology() {
     const nodes = this.topology.nodes;
     const links = this.topology.links;
@@ -112,7 +197,7 @@ const FrontTopology = new class FrontTopology {
   
   showGraph(reset = true) {
     if (reset)
-      this.topology.constructGraphFrom([]);
+      this.topology.constructGraph(true);
 
     const el = document.querySelector('omega-graph');
 
@@ -125,13 +210,19 @@ const FrontTopology = new class FrontTopology {
   protected _trim_cache: TrimOptions = {};
   protected _prune_cache: [string[], number];
 
+  get current_trim_parameters() {
+    return this._trim_cache;
+  }
+
+  get current_prune_parameters() {
+    return this._prune_cache;
+  }
+
   trim(options: TrimOptions = {}) {
     if (options.keep_old !== false) {
       // Récupère les données du cache
       options = Object.assign({}, this._trim_cache, options);
     } 
-
-    console.log(options);
 
     // Set des valeurs par défaut
     const {
@@ -157,6 +248,7 @@ const FrontTopology = new class FrontTopology {
     };
 
     if (this._prune_cache) {
+      console.log("Re-pruning")
       this.prune(...this._prune_cache); return;
     }
 
@@ -164,7 +256,14 @@ const FrontTopology = new class FrontTopology {
   }
 
   prune(seeds: string[], distance = Infinity) {
-    this.topology.prune(distance, ...seeds);
+    const graph = this.topology.prune(distance, ...seeds);
+    
+    if (graph.edgeCount() === 0) {
+      console.warn("Graph does not have any edge ! Cancelling prune...");
+      this._prune_cache = undefined;
+      this.showGraph(true);
+      return;
+    }
 
     this._prune_cache = [seeds, distance];
 

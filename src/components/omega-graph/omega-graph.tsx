@@ -1,10 +1,13 @@
-import { Component, h, Prop, Listen, Element, Method, Event, EventEmitter, Watch } from '@stencil/core';
+import { Component, h, Prop, Listen, Element, Method, Event, EventEmitter } from '@stencil/core';
 import FrontTopology from '../../utils/FrontTopology';
 
 import ForceGraph3D from '3d-force-graph';
-import { D3GraphBase, D3Node, D3Link, MakeGraphEvent, TrimProperties } from '../../utils/types';
-import { BASE_SIMILARITY, BASE_COVERAGE, BASE_IDENTITY } from '../../utils/utils';
+import { D3GraphBase, D3Node, D3Link, MakeGraphEvent, TrimProperties, PruneAddProperty, PruneDeleteProperty } from '../../utils/types';
 import ReversibleKeyMap from 'reversible-key-map';
+
+import * as d3 from 'd3';
+
+import { Color, Material, MeshLambertMaterial, LineBasicMaterial } from 'three';
 
 // import * as jstree from '../../..//node_modules/jstree/dist/jstree';
 // import $ from 'jquery';
@@ -21,11 +24,11 @@ export class OmegaGraph {
 
   @Event({
     eventName: "prune-add-node"
-  }) addSelectedNode: EventEmitter;
+  }) addSelectedNode: EventEmitter<PruneAddProperty>;
 
   @Event({
     eventName: "prune-delete-node"
-  }) removeSelectedNode: EventEmitter;
+  }) removeSelectedNode: EventEmitter<PruneDeleteProperty>;
 
   @Event({
     eventName: "prune-reset-nodes"
@@ -56,6 +59,32 @@ export class OmegaGraph {
   protected _actual_data: D3GraphBase;
   protected _links_to_nodes: ReversibleKeyMap<string, string, D3Link> = new ReversibleKeyMap;
 
+  protected hovered_color = new Color('rgb(255,150,0,1)');
+  protected selectionned_color = new Color('rgb(255,0,0,1)');
+  protected group_0_color = new Color(0x607AC1);
+  protected group_1_color = new Color(0x60C183);
+
+  protected hovered_link_color = new Color('rgb(250,120,30,1)');
+  protected classic_link_color = new Color('rgb(255,255,255,1)');
+
+  protected link_hovered_material = new LineBasicMaterial({
+    color: this.hovered_link_color,
+    linewidth: 3,
+    opacity : 0.8,
+    transparent: true,
+    linecap: 'round',
+    linejoin:  'round'
+  });
+
+  protected link_classic_material = new LineBasicMaterial({
+    color: this.classic_link_color,
+    linewidth: 1,
+    opacity : 0.2,
+    transparent: true,
+    linecap: 'round',
+    linejoin:  'round'
+  });
+
   /**
    * Initialisation du composant.
    */
@@ -67,8 +96,8 @@ export class OmegaGraph {
     // Construction du graphe
     console.log("Topology has been initialized.");
 
-    FrontTopology.trim({ similarity: Number("50"), coverage: Number(BASE_COVERAGE), identity: Number(BASE_IDENTITY), definitive: true });
-    //FrontTopology.showGraph();
+    // FrontTopology.trim({ similarity: Number(BASE_SIMILARITY), coverage: Number(BASE_COVERAGE), identity: Number(BASE_IDENTITY), definitive: true });
+    FrontTopology.showGraph();
 
     FrontTopology.downloadMitabLines()
       .then(() => {
@@ -77,10 +106,6 @@ export class OmegaGraph {
           this.buildOntoTree.emit([...FrontTopology.onto_ids]);
         }
       });
-  }
-
-  async componentDidUnload() {
-    console.log("Unload component");
   }
 
   async componentDidUpdate() {
@@ -95,13 +120,11 @@ export class OmegaGraph {
   }
 
   protected clip(nodes: D3Node[], force = false) {
-    console.log(nodes);
-
     for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
       node.__threeObj.visible = force ? node.__threeObj.visible : false;
 
       for (const centerNode of nodes) {
-        if (node.id === centerNode.id || this._links_to_nodes.hasCouple(node.id, centerNode.id)) {
+        if (node.id === centerNode.id /* || this._links_to_nodes.hasCouple(node.id, centerNode.id) */) {
           // console.log('i will show ' + node.id);
           node.__threeObj.visible = true;
           break;
@@ -117,8 +140,13 @@ export class OmegaGraph {
       const linkByPartner = this._links_to_nodes.getAllFrom(centerNode.id);
 
       if (linkByPartner)
-        for (const partner of linkByPartner.values()) {
-          partner.__lineObj.visible = true;
+        for (const [id, partner] of linkByPartner.entries()) {
+          if (partner.source.id === id && partner.source.__threeObj.visible) {
+            partner.__lineObj.visible = true;
+          }
+          else if (partner.target.id === id && partner.target.__threeObj.visible) {
+            partner.__lineObj.visible = true;
+          }
         }
     }
   }
@@ -148,8 +176,6 @@ export class OmegaGraph {
 
       this._links_to_nodes.set(l.source.id, l.target.id, l);
     }
-
-    console.log("Registred");
   }
 
   set actual_data(data: D3GraphBase) {
@@ -163,6 +189,22 @@ export class OmegaGraph {
 
     this._actual_data = data;
 
+    // Register les groupes de façon asynchrone
+    setTimeout(() => {
+      const nodes = new Map<string, D3Node>();
+      for (const node of this._actual_data.nodes) {
+        nodes.set(node.id, node);
+      } 
+
+      for (const node of this.three_d_graph.graphData().nodes as D3Node[]) {
+        if (nodes.has(node.id)) {
+          node.group = nodes.get(node.id).group;
+        }
+      }
+
+      this.updateGeometries();
+    }, 5);
+
     // Unclip all
     this.unclip();
 
@@ -174,10 +216,55 @@ export class OmegaGraph {
       this.buildTaxoTree.emit([...FrontTopology.taxo_ids]);
       this.buildOntoTree.emit([...FrontTopology.onto_ids]);
     }
+
+    FrontTopology.setupUniprotData();
   }
 
   get actual_data() {
     return this._actual_data;
+  }
+
+  @Listen('go-chart.select', { target: 'window' })
+  selectNodes(event: CustomEvent<{ selected: {id: string}[] }>) {
+    const go_ids = event.detail.selected.map(e => e.id);
+
+    // Get nodes from GO IDS
+    const nodes = FrontTopology.topo.go_container.bulkSearch(go_ids);
+
+    this.resetHighlighting();
+    this.highlightNode(...nodes);
+  }
+
+  // WILL LOOSE ALL EXISTING DATA
+  @Listen('omega-reheat.reheat', { target: 'window' })
+  reheat(data?: D3GraphBase) {
+    if (data instanceof CustomEvent) {
+      data = data.detail;
+    }
+
+    if (!data) {
+      data = this.actual_data;
+    }
+
+    this._actual_data = undefined;
+
+    this.three_d_graph
+      .graphData({links:[], nodes:[]})
+      .cooldownTicks(300)
+      .cooldownTime(10000);
+
+    this._links_to_nodes = new ReversibleKeyMap;
+
+    this.make3dGraph(data);
+  }
+
+  @Listen('omega-reset.reset', { target: 'window' })
+  reset() {
+    console.log("Reset");
+    this._actual_data = undefined;
+    this.three_d_graph = undefined;
+    this._links_to_nodes = new ReversibleKeyMap;
+    FrontTopology.trim({ keep_old: false });
   }
 
   @Listen('trim-property-change', { target: 'window' })
@@ -216,6 +303,8 @@ export class OmegaGraph {
   @Method()
   async make3dGraph(data: MakeGraphEvent | D3GraphBase) {
     this.resetSelectedNodes.emit();
+    this.highlighted_links = new Set;
+    this.highlighted_nodes = new Set;
 
     const graph_base = data instanceof CustomEvent ? (event as MakeGraphEvent).detail.graph_base : data;
 
@@ -223,47 +312,42 @@ export class OmegaGraph {
       throw new TypeError("Bad event raised: graph_base is not defined");
     }
 
-    console.log(graph_base);
-
     if (this.three_d_graph) {
-      console.log("Rebuilding from existant");
       this.actual_data = graph_base;
     }
     else {
       const element = this.el.querySelector(`div[graph-element]`);
       element.innerHTML = "";
 
-      this.three_d_graph = ForceGraph3D() //.backgroundColor('#fff').linkWidth(2).linkColor("#000").linkOpacity(0.5)
+      this.three_d_graph = ForceGraph3D({ rendererConfig: { antialias: true, alpha: true, preserveDrawingBuffer: true } }) //.backgroundColor('#fff').linkWidth(2).linkColor("#000").linkOpacity(0.5)
         (element)
         .nodeLabel('id')
         // .forceEngine('ngraph') // Fait planter cameraPosition
         .linkCurvature((l: D3Link) => l.target == l.source ? 0.5 : 0)
+        // Nécessaire pour avoir une bonne couleur à l'initialisation
         .nodeColor((node: D3Node) => (this.highlighted_nodes.has(node) || this.hovered_nodes.has(node)) ? 'rgb(255,0,0,1)' : (node.group === 0 ? '#607AC1' : '#60C183'))
-        // .linkWidth((link: D3Link) => (this.highlighted_links.has(link) || this.hovered_links.has(link)) ? 4 : 0)
-        .linkDirectionalParticles((link: D3Link) => (this.highlighted_links.has(link) || this.hovered_links.has(link)) ? 4 : 0)
-        .linkDirectionalParticleWidth(4)
+        // .linkWidth((link: D3Link) => (this.highlighted_links.has(link) || this.hovered_links.has(link)) ? 4 : 2)
         .cooldownTicks(300)
         .cooldownTime(10000)
         .onNodeClick((node: D3Node) => {
-            if (this.in_selection) {
-              if (this.highlighted_nodes.has(node)) {
-                this.removeHighlighting(node.id);
-              }
-              else {
-                this.highlightNode(node.id);
-              }
-                
-              return;
+          if (this.in_selection) {
+            if (this.highlighted_nodes.has(node)) {
+              this.removeHighlighting(node.id);
             }
+            else {
+              this.highlightNode(node.id);
+            }
+              
+            return;
+          }
 
-            const distance = 120;
-            const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-            console.log(distRatio)
-            this.three_d_graph.cameraPosition(
-                { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
-                node, // lookAt ({ x, y, z })
-                3000  // ms transition duration
-            );
+          const distance = 120;
+          const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+          this.three_d_graph.cameraPosition(
+              { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+              node, // lookAt ({ x, y, z })
+              3000  // ms transition duration
+          );
         })
         .onNodeHover(async (node: D3Node) => {
           // no state change
@@ -281,7 +365,8 @@ export class OmegaGraph {
           this.hovered_links = new Set([link]);
           this.hovered_nodes = link ? new Set([link.source, link.target]) : new Set;
           this.updateGeometries();
-        });
+        })
+        .d3VelocityDecay(0.3);
 
       this.three_d_graph.onEngineStop(() => {
           this.three_d_graph.cooldownTicks(0)
@@ -292,34 +377,64 @@ export class OmegaGraph {
     }
   }
 
+  @Listen('omega-download.download', { target: 'window' })
+  @Method()
+  async downloadGraphAsImage(image_name: string | CustomEvent = "graph") {
+    if (image_name instanceof CustomEvent) {
+      image_name = image_name.detail;
+    }
+
+    const saveFile = function (strData: string, filename: string) {
+      const link = document.createElement('a');
+      // Autodownload
+      document.body.appendChild(link); //Firefox requires the link to be in the body
+      link.download = filename;
+      link.href = strData;
+      link.click();
+      document.body.removeChild(link); //remove the link when done
+    }
+
+    try {
+      const strMime = "image/jpeg", strDownloadMime = "image/octet-stream";;
+      const imgData = this.three_d_graph.renderer().domElement.toDataURL(strMime);
+
+      saveFile(imgData.replace(strMime, strDownloadMime), image_name + ".jpg");
+
+    } catch (e) {
+        console.log(e);
+    }
+  }
+
   @Method()
   async highlightNode(...node_ids: string[]) {
     const indexes = new Set(node_ids);
 
-    for (let i = 0; i < this.actual_data.nodes.length && indexes.size; i++) {
-      if (indexes.has(this.actual_data.nodes[i].id)) {
-        indexes.delete(this.actual_data.nodes[i].id);
+    const data = this.three_d_graph.graphData() as D3GraphBase;
+    const to_highlight = [];
 
-        if (!this.highlighted_nodes.has(this.actual_data.nodes[i])) {
-          this.addSelectedNode.emit(this.actual_data.nodes[i].id);
+    for (let i = 0; i < data.nodes.length && indexes.size; i++) {
+      if (indexes.has(data.nodes[i].id)) {
+        indexes.delete(data.nodes[i].id);
+
+        if (!this.highlighted_nodes.has(data.nodes[i])) {
+          to_highlight.push(data.nodes[i].id);
         }
 
-        this.highlighted_nodes.add(this.actual_data.nodes[i]);
+        this.highlighted_nodes.add(data.nodes[i]);
       }
     }
 
-    if (indexes.size) {
-      console.warn('Node(s) ' + [...indexes].join(', ') + ' not found');
-    }
-
     this.updateGeometries();
+    this.addSelectedNode.emit(to_highlight);
   }
 
   @Method()
   async highlightNodeRegex(matcher: RegExp) {
-    for (let i = 0; i < this.actual_data.nodes.length; i++) {
-      if (matcher.test(this.actual_data.nodes[i].id)) {
-        this.highlighted_nodes.add(this.actual_data.nodes[i]);
+    const data = this.three_d_graph.graphData() as D3GraphBase;
+
+    for (let i = 0; i < data.nodes.length; i++) {
+      if (matcher.test(data.nodes[i].id)) {
+        this.highlighted_nodes.add(data.nodes[i]);
       }
     }
 
@@ -334,6 +449,7 @@ export class OmegaGraph {
   @Method()
   async removeHighlighting(...node_ids: string[]) {
     const nodes_to_remove = new Set(node_ids);
+
     const to_remove = [...this.highlighted_nodes].filter(e => nodes_to_remove.has(e.id));
 
     for (const nd of to_remove) {
@@ -358,40 +474,73 @@ export class OmegaGraph {
   @Method()
   async resetHighlighting() {
     this.highlighted_nodes = new Set;
+    this.resetSelectedNodes.emit();
     this.updateGeometries();
   }
 
+
   protected updateGeometries() {
-    // Sauvegarde des états des noeuds
-    const nodes_map = new Map<string, boolean>();
-    const links_map = new ReversibleKeyMap<string, string, boolean>();
+    // Checking node color
+    const data = this.three_d_graph.graphData() as D3GraphBase;
 
-    for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
-      nodes_map.set(node.id, node.__threeObj.visible);
-    }
-    for (const link of (this.three_d_graph.graphData().links as D3Link[])) {
-      links_map.set(link.target.id, link.source.id, link.__lineObj.visible);
+    for (const node of data.nodes) {
+      const node_material = node.__threeObj.material as MeshLambertMaterial;
+
+      if (this.hovered_nodes.has(node)) {
+        if (node_material.color !== this.hovered_color) {
+          const clone = node_material.clone();
+          clone.color = this.hovered_color;
+          node.__threeObj.material = clone;
+        }
+      }
+      else if (this.highlighted_nodes.has(node)) {
+        if (node_material.color !== this.selectionned_color) {
+          const clone = node_material.clone();
+          clone.color = this.selectionned_color;
+          node.__threeObj.material = clone;
+        }
+      }
+      else if (node.group === 1) {
+        if (node_material.color !== this.group_1_color) {
+          const clone = node_material.clone();
+          clone.color = this.group_1_color;
+          node.__threeObj.material = clone;
+        }
+      }
+      else {
+        if (node_material.color !== this.group_0_color) {
+          const clone = node_material.clone();
+          clone.color = this.group_0_color;
+          node.__threeObj.material = clone;
+        }
+      }
     }
 
-    this.three_d_graph.nodeRelSize(4); // trigger update of 3d objects in scene
+    // Checking link color & size
+    for (const link of data.links) {
+      const material = link.__lineObj.material as Material;
 
-    // Restauration des états
-    for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
-      node.__threeObj.visible = nodes_map.get(node.id);
-    }
-    for (const link of (this.three_d_graph.graphData().links as D3Link[])) {
-      link.__lineObj.visible = links_map.get(link.target.id, link.source.id);
+      if (this.highlighted_links.has(link) || this.hovered_links.has(link)) {
+        if (material !== this.link_hovered_material) {
+          link.__lineObj.material = this.link_hovered_material;
+        }
+      }
+      else {
+        if (material !== this.link_classic_material) {
+          link.__lineObj.material = this.link_classic_material;
+        }
+      }
     }
   }
 
   @Method()
   async getNode(id: string) {
-    return this.actual_data.nodes.find(e => e.id === id);
+    return this.three_d_graph.graphData().nodes.find(e => e.id === id);
   }
 
   @Method()
   async getLinksOf(id: string) {
-    return this.actual_data.links.filter(e => e.target.id === id || e.source.id === id);
+    return this.three_d_graph.graphData().links.filter(e => e.target.id === id || e.source.id === id);
   }
 
   @Method()
@@ -434,4 +583,109 @@ export class OmegaGraph {
     nodes.forEach((n, idx) => { n.index = idx; }); // Reset node ids to array index
     this.actual_data = { nodes, links };
   }
+
+  /**
+   * Serialize graph into a string using a custom function.
+   *
+   * @template T
+   * @param encoder 
+   * Called for each link in graph, with node1 & node2 as link source and target.
+   * Accumulator is undefined during the first call.
+   * Return value of the function will be used as accumulator during the next function call.
+   * 
+   * @param [finalize_function] Optional. Called after link iteration.
+   * 
+   * @returns R if finalize_function is defined, string instead.
+   */
+  @Method()
+  async serialize<T, R = string>(
+    encoder: (link: D3Link, node1: D3Node, node2: D3Node, accumulator?: T) => T, 
+    finalize_function?: (composed: T) => R
+  ) : Promise<R | string> {
+    let previous_return: T;
+
+    for (const link of (this.three_d_graph.graphData() as D3GraphBase).links) {
+      previous_return = encoder(link, link.source, link.target, previous_return);
+    }
+
+    if (finalize_function) {
+      return finalize_function(previous_return);
+    }
+
+    if (typeof previous_return === 'string') {
+      return previous_return;
+    }
+    else {
+      return JSON.stringify(previous_return);
+    }
+  }
+
+  @Method()
+  toJSON() : Promise<string> {
+    return this.serialize(
+      (link, node1, node2, acc: ExportedJSON) => {
+        if (!acc) {
+          acc = { 
+            nodes: {}, 
+            links: [], 
+            misc: { 
+              trim_parameters: FrontTopology.current_trim_parameters,
+              prune_parameters: FrontTopology.current_prune_parameters
+            } 
+          };
+        }
+
+        acc.nodes[node1.id] = { val: node1.value, group: node1.group };
+        acc.nodes[node2.id] = { val: node2.value, group: node2.group };
+
+        acc.links.push({
+          source: link.source.id,
+          target: link.target.id,
+          homologyInfo: link.misc,
+          mitabInfos: FrontTopology.topo.psi.getLines(link.source.id, link.target.id)
+        });
+
+        return acc;
+      }
+    )
+  }
+
+  @Method()
+  toTabular() : Promise<string> {
+    return this.serialize(
+      (link, node1, node2, acc: string) => {
+        if (!acc) {
+          acc = "";
+        }
+
+        ///// Line:
+        // id1  id2 identity (best of)  mitabLine
+
+        const id1 = node1.id;
+        const id2 = node2.id;
+        const best_identity = Math.max(...link.misc.lowQueryParam.map(v => v.idPct));
+
+        const lines = FrontTopology.topo.psi.getLines(id1, id2);
+
+        for (const line of lines) {
+          acc += `${id1}\t${id2}\t${best_identity}\t` + line.toString();
+        }
+
+        return acc;
+      }
+    )
+  }
 } 
+
+type ExportedJSON = { 
+  nodes: { 
+    [nodeId: string]: { val: number, group: number } 
+  }, 
+  links: { 
+    source: string, target: string, mitabInfos: any, homologyInfo: any 
+  }[],
+  misc: {
+    trim_parameters: any,
+    prune_parameters: [string[], number]
+  } 
+} | void;

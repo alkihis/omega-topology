@@ -11,16 +11,21 @@ import {
   D3Link,
   D3Node,
   MakeGraphEvent,
+  PruneAddProperty,
+  PruneDeleteProperty,
   TrimProperties,
 } from './utils/types';
 import {
-  TreeAsAPI,
+  SubNode,
+  TreeLike,
 } from '@mmsb/selectionnable-tree';
 
 export namespace Components {
+  interface OmegaDownload {}
   interface OmegaGraph {
-    'getLinksOf': (id: string) => Promise<D3Link[]>;
-    'getNode': (id: string) => Promise<D3Node>;
+    'downloadGraphAsImage': (image_name?: string | CustomEvent<any>) => Promise<void>;
+    'getLinksOf': (id: string) => Promise<any>;
+    'getNode': (id: string) => Promise<any>;
     'highlightLink': (source: string, target: string) => Promise<void>;
     'highlightNode': (...node_ids: string[]) => Promise<void>;
     'highlightNodeRegex': (matcher: RegExp) => Promise<void>;
@@ -33,26 +38,48 @@ export namespace Components {
     'removeNode': (...removed_nodes: (string | RegExp | D3Node)[]) => Promise<void>;
     'resetHighlighting': () => Promise<void>;
     /**
+    * Serialize graph into a string using a custom function.
+    */
+    'serialize': <T, R = string>(encoder: (link: D3Link, node1: D3Node, node2: D3Node, accumulator?: T) => T, finalize_function?: (composed: T) => R) => Promise<string | R>;
+    /**
     * Espèce modélisée par le graphe
     */
     'specie': string;
+    'toJSON': () => Promise<string>;
+    'toTabular': () => Promise<string>;
   }
   interface OmegaOnto {
-    'getData': () => Promise<import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").TreeLike[]>;
-    'setData': (d: import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").SubNode) => Promise<void>;
+    'getData': () => Promise<TreeLike[]>;
+    'setData': (d: SubNode) => Promise<void>;
     'unsetData': () => Promise<void>;
   }
   interface OmegaPrune {}
+  interface OmegaReheat {}
+  interface OmegaReset {}
+  interface OmegaTabs {}
   interface OmegaTaxo {
-    'getData': () => Promise<import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").TreeLike[]>;
-    'setData': (d: import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").SubNode) => Promise<void>;
+    'getData': () => Promise<TreeLike[]>;
+    'setData': (d: SubNode) => Promise<void>;
     'unsetData': () => Promise<void>;
   }
-  interface OmegaTrim {}
+  interface OmegaTrim {
+    'fix_at'?: {
+      identity?: string,
+      coverage?: string,
+      similarity?: string,
+      e_value?: string
+    };
+  }
 }
 
 declare global {
 
+
+  interface HTMLOmegaDownloadElement extends Components.OmegaDownload, HTMLStencilElement {}
+  var HTMLOmegaDownloadElement: {
+    prototype: HTMLOmegaDownloadElement;
+    new (): HTMLOmegaDownloadElement;
+  };
 
   interface HTMLOmegaGraphElement extends Components.OmegaGraph, HTMLStencilElement {}
   var HTMLOmegaGraphElement: {
@@ -72,6 +99,24 @@ declare global {
     new (): HTMLOmegaPruneElement;
   };
 
+  interface HTMLOmegaReheatElement extends Components.OmegaReheat, HTMLStencilElement {}
+  var HTMLOmegaReheatElement: {
+    prototype: HTMLOmegaReheatElement;
+    new (): HTMLOmegaReheatElement;
+  };
+
+  interface HTMLOmegaResetElement extends Components.OmegaReset, HTMLStencilElement {}
+  var HTMLOmegaResetElement: {
+    prototype: HTMLOmegaResetElement;
+    new (): HTMLOmegaResetElement;
+  };
+
+  interface HTMLOmegaTabsElement extends Components.OmegaTabs, HTMLStencilElement {}
+  var HTMLOmegaTabsElement: {
+    prototype: HTMLOmegaTabsElement;
+    new (): HTMLOmegaTabsElement;
+  };
+
   interface HTMLOmegaTaxoElement extends Components.OmegaTaxo, HTMLStencilElement {}
   var HTMLOmegaTaxoElement: {
     prototype: HTMLOmegaTaxoElement;
@@ -84,20 +129,28 @@ declare global {
     new (): HTMLOmegaTrimElement;
   };
   interface HTMLElementTagNameMap {
+    'omega-download': HTMLOmegaDownloadElement;
     'omega-graph': HTMLOmegaGraphElement;
     'omega-onto': HTMLOmegaOntoElement;
     'omega-prune': HTMLOmegaPruneElement;
+    'omega-reheat': HTMLOmegaReheatElement;
+    'omega-reset': HTMLOmegaResetElement;
+    'omega-tabs': HTMLOmegaTabsElement;
     'omega-taxo': HTMLOmegaTaxoElement;
     'omega-trim': HTMLOmegaTrimElement;
   }
 }
 
 declare namespace LocalJSX {
+  interface OmegaDownload extends JSXBase.HTMLAttributes<HTMLOmegaDownloadElement> {
+    'onOmega-download.download'?: (event: CustomEvent<string>) => void;
+    'onOmega-download.download-as-file'?: (event: CustomEvent<string>) => void;
+  }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
     'onOmega-graph.rebuild_onto'?: (event: CustomEvent<string[]>) => void;
     'onOmega-graph.rebuild_taxo'?: (event: CustomEvent<string[]>) => void;
-    'onPrune-add-node'?: (event: CustomEvent<any>) => void;
-    'onPrune-delete-node'?: (event: CustomEvent<any>) => void;
+    'onPrune-add-node'?: (event: CustomEvent<PruneAddProperty>) => void;
+    'onPrune-delete-node'?: (event: CustomEvent<PruneDeleteProperty>) => void;
     'onPrune-reset-nodes'?: (event: CustomEvent<void>) => void;
     /**
     * Espèce modélisée par le graphe
@@ -111,17 +164,34 @@ declare namespace LocalJSX {
     'onPrune-end-select-nodes'?: (event: CustomEvent<void>) => void;
     'onPrune-select-nodes'?: (event: CustomEvent<void>) => void;
   }
+  interface OmegaReheat extends JSXBase.HTMLAttributes<HTMLOmegaReheatElement> {
+    'onOmega-reheat.reheat'?: (event: CustomEvent<void>) => void;
+  }
+  interface OmegaReset extends JSXBase.HTMLAttributes<HTMLOmegaResetElement> {
+    'onOmega-reset.reset'?: (event: CustomEvent<void>) => void;
+  }
+  interface OmegaTabs extends JSXBase.HTMLAttributes<HTMLOmegaTabsElement> {}
   interface OmegaTaxo extends JSXBase.HTMLAttributes<HTMLOmegaTaxoElement> {
     'onOmega-taxo.trim'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaTrim extends JSXBase.HTMLAttributes<HTMLOmegaTrimElement> {
+    'fix_at'?: {
+      identity?: string,
+      coverage?: string,
+      similarity?: string,
+      e_value?: string
+    };
     'onTrim-property-change'?: (event: CustomEvent<TrimProperties>) => void;
   }
 
   interface IntrinsicElements {
+    'omega-download': OmegaDownload;
     'omega-graph': OmegaGraph;
     'omega-onto': OmegaOnto;
     'omega-prune': OmegaPrune;
+    'omega-reheat': OmegaReheat;
+    'omega-reset': OmegaReset;
+    'omega-tabs': OmegaTabs;
     'omega-taxo': OmegaTaxo;
     'omega-trim': OmegaTrim;
   }

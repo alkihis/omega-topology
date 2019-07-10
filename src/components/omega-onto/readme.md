@@ -14,7 +14,7 @@
 
 ## Methods
 
-### `getData() => Promise<import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").TreeLike[]>`
+### `getData() => Promise<TreeLike[]>`
 
 
 
@@ -24,7 +24,7 @@ Type: `Promise<TreeLike[]>`
 
 
 
-### `setData(d: import("/Users/lberanger/omega-topology-graph/node_modules/@mmsb/selectionnable-tree/dist/types/index").SubNode) => Promise<void>`
+### `setData(d: SubNode) => Promise<void>`
 
 
 
@@ -47,6 +47,10 @@ Type: `Promise<void>`
 
 ## Dependencies
 
+### Used by
+
+ - [omega-tabs](../omega-tabs)
+
 ### Depends on
 
 - selectionnable-tree
@@ -55,6 +59,7 @@ Type: `Promise<void>`
 ```mermaid
 graph TD;
   omega-onto --> selectionnable-tree
+  omega-tabs --> omega-onto
   style omega-onto fill:#f9f,stroke:#333,stroke-width:4px
 ```
 

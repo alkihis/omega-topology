@@ -1,0 +1,32 @@
+.hide {
+    display: none;
+}
+
+[tabs-container] {
+    border-bottom-right-radius: 8px;
+    border-top-right-radius: 8px;
+    margin-top: 10px;
+    background: rgba(245, 248, 253, 0.9);
+    display: inline-block;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow: auto;
+}
+
+ul[tabs-root] {
+    background: linear-gradient(#212121, rgba(49, 49, 49, 0.52));
+    border-bottom-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+
+ul[tabs-root] a.nav-link {
+    color: #aed5ff;
+}
+
+ul[tabs-root] a.nav-link:hover {
+    color: #4684ff;
+}
+
+ul[tabs-root] a.nav-link.active:hover {
+    color: white;
+}

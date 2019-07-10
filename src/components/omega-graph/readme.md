@@ -14,34 +14,44 @@
 
 ## Events
 
-| Event                      | Description | Type                    |
-| -------------------------- | ----------- | ----------------------- |
-| `omega-graph.rebuild_onto` |             | `CustomEvent<string[]>` |
-| `omega-graph.rebuild_taxo` |             | `CustomEvent<string[]>` |
-| `prune-add-node`           |             | `CustomEvent<any>`      |
-| `prune-delete-node`        |             | `CustomEvent<any>`      |
-| `prune-reset-nodes`        |             | `CustomEvent<void>`     |
+| Event                      | Description | Type                              |
+| -------------------------- | ----------- | --------------------------------- |
+| `omega-graph.rebuild_onto` |             | `CustomEvent<string[]>`           |
+| `omega-graph.rebuild_taxo` |             | `CustomEvent<string[]>`           |
+| `prune-add-node`           |             | `CustomEvent<string \| string[]>` |
+| `prune-delete-node`        |             | `CustomEvent<string>`             |
+| `prune-reset-nodes`        |             | `CustomEvent<void>`               |
 
 
 ## Methods
 
-### `getLinksOf(id: string) => Promise<D3Link[]>`
+### `downloadGraphAsImage(image_name?: string) => Promise<void>`
 
 
 
 #### Returns
 
-Type: `Promise<D3Link[]>`
+Type: `Promise<void>`
 
 
 
-### `getNode(id: string) => Promise<D3Node>`
+### `getLinksOf(id: string) => Promise<any>`
 
 
 
 #### Returns
 
-Type: `Promise<D3Node>`
+Type: `Promise<any>`
+
+
+
+### `getNode(id: string) => Promise<any>`
+
+
+
+#### Returns
+
+Type: `Promise<any>`
 
 
 

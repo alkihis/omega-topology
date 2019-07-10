@@ -1,0 +1,15 @@
+.reheat-container {
+    background: rgba(70, 70, 70, 0.521);
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    height: 48px;
+    border-radius: 5px;
+    user-select: none;
+}
+
+.reheat-container i {
+    font-size: 48px;
+    color: white;
+    cursor: pointer;
+}

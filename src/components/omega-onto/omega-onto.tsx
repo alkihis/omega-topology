@@ -1,6 +1,6 @@
 import { Component, h, Listen, Element, Method, State, Event, EventEmitter, Watch } from '@stencil/core';
-import { TreeAsAPI } from '@mmsb/selectionnable-tree';
-import { TAXONOMY_URL, ONTOLOGY_URL } from '../../utils/utils';
+import { TreeAsAPI, SubNode, TreeLike } from '@mmsb/selectionnable-tree';
+import { ONTOLOGY_URL } from '../../utils/utils';
 
 @Component({
   tag: "omega-onto",
@@ -27,7 +27,7 @@ export class OmegaTaxo {
   }
 
   @Method()
-  async setData(d: TreeAsAPI) {
+  async setData(d: SubNode) {
     const e = this.tree;
     
     // Converting data
@@ -37,7 +37,7 @@ export class OmegaTaxo {
   }
 
   @Method()
-  async getData() {
+  async getData() : Promise<TreeLike[]> {
     return this.tree.data;
   }
 
@@ -70,7 +70,7 @@ export class OmegaTaxo {
     // Obtention du TreeAsAPI
     const data = await this.getOntology(e.detail);
 
-    console.log(data.tree);
+    // console.log(data.tree);
     this.setData(data.tree);
   }
 

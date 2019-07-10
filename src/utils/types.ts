@@ -1,4 +1,5 @@
 import { HoParameterSet } from "omega-topology-fullstack";
+import { Mesh } from "three";
 
 export interface JSGraph {
     options: { directed: boolean, multigraph: boolean, compound: boolean };
@@ -43,7 +44,7 @@ export interface D3Node {
     x: number;
     y: number;
     z: number;
-    __threeObj: any;
+    __threeObj: Mesh;
 }
 
 export interface D3Link {
@@ -58,5 +59,5 @@ export interface D3Link {
 export type MakeGraphEvent = CustomEvent<{ graph_base: D3GraphBase }>;
 export type TrimProperties = { identity: number, e_value: number, similarity: number, coverage: number };
 export type PruneProperties = string[];
-export type PruneAddProperty = string;
+export type PruneAddProperty = string | string[];
 export type PruneDeleteProperty = string;
