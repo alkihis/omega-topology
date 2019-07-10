@@ -12,6 +12,13 @@ export class OmegaTrim {
 
   public static readonly tag = "omega-prune";
 
+  @State() uniprot_loaded = false;
+
+  @Listen('FrontTopology.uniprot-downloaded', { target: 'window' })
+  loadUniprot() {
+    this.uniprot_loaded = true;
+  }
+
   @Event({
     eventName: "prune-select-nodes"
   }) selectEvent: EventEmitter<void>;
@@ -82,7 +89,15 @@ export class OmegaTrim {
       <div class="container">
         <div class="row">
           <div class="col" style={{'padding-left': '0'}}>
-            <network-table></network-table>
+            <div class={this.uniprot_loaded ? "" : "hide"}>
+              <network-table></network-table>
+            </div>
+            <div class={this.uniprot_loaded ? "hide" : ""}>
+              <div class="embedded-preloader">
+                <div class="preloader-loader"></div>
+              </div>
+              <div class="text-center font-weight-bold">Loading UniProt data...</div>
+            </div>
           </div>
 
           <div class="col" style={{'padding-right': '0'}}>

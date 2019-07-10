@@ -56,6 +56,8 @@ const FrontTopology = new class FrontTopology {
       console.log('Download complete in', t.elapsed, '.');
 
       this.setupUniprotData();
+
+      window.dispatchEvent(new CustomEvent('FrontTopology.uniprot-downloaded'));
     });
 
     if (auto_mitab_dl) {
@@ -98,6 +100,8 @@ const FrontTopology = new class FrontTopology {
 
       this.socket.on(this.current_specie, (lines: string[][]) => {
         this.mitab_downloaded += this.topology.read(lines);
+        // Envoi l'évènement de push
+        window.dispatchEvent(new CustomEvent<number>('FrontTopology.mitab-download-update', { detail: this.percentage_mitab }));
       });
 
       return new Promise((resolve, reject) => {
@@ -106,11 +110,16 @@ const FrontTopology = new class FrontTopology {
 
           this.socket.close();
 
+          
           this.mitab_complete = true;
-
+          
           this.topology.linkMitabLines();
-
+          
+          // Résoud la promesse
           resolve(this.topology);
+
+          // Envoie l'évènement de terminaison
+          window.dispatchEvent(new CustomEvent('FrontTopology.mitab-downloaded'));
         });
         this.socket.on('error', reject);
       });

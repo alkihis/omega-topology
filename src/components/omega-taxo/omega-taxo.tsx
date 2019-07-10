@@ -12,8 +12,25 @@ export class OmegaTaxo {
 
   public static readonly tag = "omega-taxo";
 
+  @State() mitab_loaded = false;
+  @State() mitab_percent = 0;
+
+  @Listen('FrontTopology.mitab-downloaded', { target: 'window' })
+  loadMitab() {
+    this.mitab_loaded = true;
+  }
+
+  @Listen('FrontTopology.mitab-download-update', { target: 'window' })
+  updateMitab(e: CustomEvent<number>) {
+    this.mitab_percent = e.detail;
+  }
+
+
   @State()
   protected _has_data = false;
+
+  @State()
+  protected in_error = false;
 
   @State()
   protected selected: [string, string][] = [];
@@ -29,21 +46,23 @@ export class OmegaTaxo {
   @Method()
   async setData(d: SubNode) {
     const e = this.tree;
-    
+
     // Converting data
     const converted = await e.convertAPITreeToValidTree(d);
     e.data = converted;
     this._has_data = true;
+    this.in_error = false;
   }
 
   @Method()
-  async getData() : Promise<TreeLike[]> {
+  async getData(): Promise<TreeLike[]> {
     return this.tree.data;
   }
 
   @Method()
   async unsetData() {
     this._has_data = false;
+    this.in_error = false;
 
   }
 
@@ -69,13 +88,17 @@ export class OmegaTaxo {
   async rebuildTree(e: CustomEvent<string[]>) {
     // Obtention du TreeAsAPI
     // console.log(e.detail);
-    const data = await this.getTaxonomy(e.detail);
+    try {
+      const data = await this.getTaxonomy(e.detail);
 
-    // console.log(data.tree);
-    this.setData(data.tree);
+      // console.log(data.tree);
+      this.setData(data.tree);
+    } catch (e) {
+      this.in_error = true;
+    }
   }
 
-  protected async getTaxonomy(list: string[]) : Promise<{ tree: TreeAsAPI }> {
+  protected async getTaxonomy(list: string[]): Promise<{ tree: TreeAsAPI }> {
     return fetch(TAXONOMY_URL + '/bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,17 +116,38 @@ export class OmegaTaxo {
   render() {
     return (
       <div>
-        <div class={this._has_data ? "hide" : ""}>
-          Interaction data are not loaded yet.
+        <div class={this.mitab_loaded ? "" : "hide"}>
+          <div class={!this.in_error ? "" : "hide"}>
+            <div class={this._has_data ? "hide" : ""}>
+              Taxonomy tree is waiting for initialisation...
+            </div>
+            
+            <selectionnable-tree name="taxonomy" select_all_on_change={true} class={this._has_data ? "" : "hide"}></selectionnable-tree>
+
+            <div class="options" style={this._has_data ? {} : { 'display': 'none' }}>
+              <div class={this._has_data ? "" : "hide"}>{(this.selected.length ? this.selected.length : "Any") + " taxon" + (this.selected.length > 1 ? "s" : "") + " selected"}</div>
+
+              <button class="left btn btn-secondary" style={{ 'margin-top': '5px', 'margin-right': '5px' }} onClick={() => this.trimTaxons(true)}>Reset taxons</button>
+              <button class="right btn btn-primary" style={{ 'margin-top': '5px' }} onClick={() => this.trimTaxons()}>Select those taxons</button>
+              <div class="clearb"></div>
+            </div>
+          </div>
+
+          <div class={(this.in_error ? "" : "hide") + " text-center"}>
+            <div class="row">
+              <div class="col text-center"><i class="material-icons text-danger" style={{ 'font-size': '48px' }}>error</i></div>
+            </div>
+            <div class="row font-weight-bold">
+              <div class="col text-center">Unable to load tree.</div>
+            </div>
+          </div>
         </div>
-        <selectionnable-tree name="taxonomy" select_all_on_change={true} class={this._has_data ? "" : "hide"}></selectionnable-tree>
 
-        <div class="options" style={this._has_data ? {} : {'display': 'none'}}>
-          <div class={this._has_data ? "" : "hide"}>{(this.selected.length ? this.selected.length : "Any") + " taxon" + (this.selected.length > 1 ? "s" : "") + " selected"}</div>
-
-          <button class="left" style={{'margin-top': '5px'}} onClick={() => this.trimTaxons(true)}>Reset taxons</button>
-          <button class="right" style={{'margin-top': '5px'}} onClick={() => this.trimTaxons()}>Select those taxons</button>
-          <div class="clearb"></div>
+        <div class={this.mitab_loaded ? "hide" : ""}>
+          <div class="embedded-preloader">
+            <div class="preloader-loader"></div>
+          </div>
+          <div class="text-center font-weight-bold">Loading MI Tab data ({this.mitab_percent.toFixed(1)}%)...</div>
         </div>
       </div>
     );

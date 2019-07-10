@@ -1,4 +1,4 @@
-import { Component, h, Element, Host, Listen } from '@stencil/core';
+import { Component, h, Element, Host, Listen, State } from '@stencil/core';
 
 @Component({
   tag: "omega-tabs",
@@ -8,7 +8,14 @@ import { Component, h, Element, Host, Listen } from '@stencil/core';
 export class OmegaTrim {
   @Element() el: HTMLElement;
 
+  @State() uniprot_loaded = false;
+
   public static readonly tag = "omega-tabs";
+
+  @Listen('FrontTopology.uniprot-downloaded', { target: 'window' })
+  loadUniprot() {
+    this.uniprot_loaded = true;
+  }
 
   protected click(e: Event) {
     const el = e.target as HTMLAnchorElement;
@@ -109,7 +116,15 @@ export class OmegaTrim {
               <omega-prune></omega-prune>
             </div>
             <div class="tab-target hide" data-name="go">
-              <go-chart></go-chart>
+              <div class={this.uniprot_loaded ? "" : "hide"}>
+                <go-chart></go-chart>
+              </div>
+              <div class={this.uniprot_loaded ? "hide" : ""}>
+                <div class="embedded-preloader">
+                  <div class="preloader-loader"></div>
+                </div>
+                <div class="text-center font-weight-bold">Loading UniProt data...</div>
+              </div>
             </div>
           </div>
         </div>

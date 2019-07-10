@@ -5,7 +5,7 @@ import ForceGraph3D from '3d-force-graph';
 import { D3GraphBase, D3Node, D3Link, MakeGraphEvent, TrimProperties, PruneAddProperty, PruneDeleteProperty } from '../../utils/types';
 import ReversibleKeyMap from 'reversible-key-map';
 
-import * as d3 from 'd3';
+import * as d3 from 'd3-force-3d';
 
 import { Color, Material, MeshLambertMaterial, LineBasicMaterial } from 'three';
 
@@ -88,13 +88,33 @@ export class OmegaGraph {
   /**
    * Initialisation du composant.
    */
-  async componentDidLoad() {
+  componentDidLoad() {
+    document.body.classList.remove('white');
+
+    this.load(true);
+  }
+
+  async load(with_slowdown = false) {
     window['graphcomponent'] = this;
 
+    if (with_slowdown) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
     await FrontTopology.init(this.specie);
+
+    if (with_slowdown) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
     
     // Construction du graphe
     console.log("Topology has been initialized.");
+    
+    const loader = document.getElementById('preloader-base');
+
+    if (loader) {
+      loader.remove();
+    }
 
     // FrontTopology.trim({ similarity: Number(BASE_SIMILARITY), coverage: Number(BASE_COVERAGE), identity: Number(BASE_IDENTITY), definitive: true });
     FrontTopology.showGraph();
@@ -108,8 +128,8 @@ export class OmegaGraph {
       });
   }
 
-  async componentDidUpdate() {
-    this.componentDidLoad();
+  componentDidUpdate() {
+    this.load();
   }
 
   /**
@@ -366,6 +386,7 @@ export class OmegaGraph {
           this.hovered_nodes = link ? new Set([link.source, link.target]) : new Set;
           this.updateGeometries();
         })
+        .d3Force('charge', d3.forceManyBody().strength(-90))
         .d3VelocityDecay(0.3);
 
       this.three_d_graph.onEngineStop(() => {

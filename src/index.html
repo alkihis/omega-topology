@@ -17,7 +17,7 @@
 
   <link href="/build/omega-topology-graph.css" rel="stylesheet">
 </head>
-<body>
+<body class="white">
   <omega-tabs></omega-tabs>
 
   <omega-reheat></omega-reheat>
@@ -25,6 +25,10 @@
   <omega-reset></omega-reset>
   
   <div style="position: absolute; z-index: -1; top: 0">
+    <div id="preloader-base" class="preloader">
+      <div class="preloader-loader"></div>
+    </div>
+
     <omega-graph></omega-graph>
   </div>  
 
