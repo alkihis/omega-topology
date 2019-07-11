@@ -8,6 +8,7 @@ import ReversibleKeyMap from 'reversible-key-map';
 import * as d3 from 'd3-force-3d';
 
 import { Color, Material, MeshLambertMaterial, LineBasicMaterial } from 'three';
+import { UniprotProtein } from 'omega-topology-fullstack/build/UniprotContainer';
 
 // import * as jstree from '../../..//node_modules/jstree/dist/jstree';
 // import $ from 'jquery';
@@ -42,14 +43,28 @@ export class OmegaGraph {
     eventName: "omega-graph.rebuild_onto"
   }) buildOntoTree: EventEmitter<string[]>;
 
+  @Event({
+    eventName: "omega-graph.rebuild"
+  }) graphGenericRebuild: EventEmitter<void>;
+
+  @Event({
+    eventName: "omega-graph.load-protein"
+  }) loadProteinCard: EventEmitter<Promise<UniprotProtein>>;
+
+  @Event({
+    eventName: "omega-graph.load-link"
+  }) loadLinkCard: EventEmitter<D3Link>;
+
   public static readonly tag = "omega-graph";
 
   /** Noeuds actuellement en surbrillance dans le graphe  */
   protected highlighted_nodes: Set<D3Node> = new Set;
   protected hovered_nodes: Set<D3Node> = new Set;
+  protected history_hover_nodes: Set<string> = new Set;
 
   protected highlighted_links: Set<D3Link> = new Set;
   protected hovered_links: Set<D3Link> = new Set;
+  protected history_hover_links: Set<D3Link> = new Set;
 
   /** Graph 3D */
   protected three_d_graph: any = undefined;
@@ -91,18 +106,29 @@ export class OmegaGraph {
   componentDidLoad() {
     document.body.classList.remove('white');
 
-    this.load(true);
+    // Attends l'initialisation des go_terms (c'est plus smooth après)
+    this.load(true, true);
   }
 
-  async load(with_slowdown = false) {
+  async load(with_slowdown = false, wait_for_go_init = false) {
     window['graphcomponent'] = this;
+
+    const preloader_infos = document.getElementById('preloader-initialisation-message');
+
+    if (preloader_infos)
+      preloader_infos.innerText = "Downloading graph for specie " + this.specie.toLocaleUpperCase();
 
     if (with_slowdown) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    await FrontTopology.init(this.specie);
-
+    try {
+      await FrontTopology.init(this.specie);
+    } catch (e) {
+      console.error("Unable to load specie skeleton", e);
+      // Afficher un message d'erreur en position absolute.
+    }
+    
     if (with_slowdown) {
       await new Promise(resolve => setTimeout(resolve, 250));
     }
@@ -111,6 +137,24 @@ export class OmegaGraph {
     console.log("Topology has been initialized.");
     
     const loader = document.getElementById('preloader-base');
+
+    if (wait_for_go_init) {
+      if (preloader_infos)
+        preloader_infos.innerText = "Downloading UniProt metadata";
+      
+      await new Promise((resolve, reject) => {
+        // Attends 15 secondes au maximum
+        const timeout = setTimeout(reject, 15000);
+
+        const resolve_fn = () => {
+          resolve();
+          window.removeEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
+          clearTimeout(timeout);
+        };
+
+        window.addEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
+      });
+    }
 
     if (loader) {
       loader.remove();
@@ -312,6 +356,30 @@ export class OmegaGraph {
     this.in_selection = false;
   }
 
+  @Listen('omega-uniprot-card.hover-on', { target: 'window' })
+  makeNodeOverHistory(e: CustomEvent<string>) {
+    this.history_hover_nodes = new Set([e.detail]);
+    this.updateGeometries();
+  }
+
+  @Listen('omega-uniprot-card.hover-off', { target: 'window' })
+  removeNodeOverHistory() {
+    this.history_hover_nodes = new Set;
+    this.updateGeometries();
+  }
+
+  @Listen('omega-mitab-card.hover-on', { target: 'window' })
+  makeLinkOverHistory(e: CustomEvent<D3Link>) {
+    this.history_hover_links = new Set([e.detail]);
+    this.updateGeometries();
+  }
+
+  @Listen('omega-mitab-card.hover-off', { target: 'window' })
+  removeLinkOverHistory() {
+    this.history_hover_links = new Set;
+    this.updateGeometries();
+  }
+
   /** 
    * Construction d'un graphe, en utilisant ForceGraph3D.
    * 
@@ -323,8 +391,11 @@ export class OmegaGraph {
   @Method()
   async make3dGraph(data: MakeGraphEvent | D3GraphBase) {
     this.resetSelectedNodes.emit();
+    this.graphGenericRebuild.emit();
     this.highlighted_links = new Set;
     this.highlighted_nodes = new Set;
+    this.history_hover_nodes = new Set;
+    this.history_hover_links = new Set;
 
     const graph_base = data instanceof CustomEvent ? (event as MakeGraphEvent).detail.graph_base : data;
 
@@ -361,13 +432,9 @@ export class OmegaGraph {
             return;
           }
 
-          const distance = 120;
-          const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-          this.three_d_graph.cameraPosition(
-              { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
-              node, // lookAt ({ x, y, z })
-              3000  // ms transition duration
-          );
+          // Afficher card noeud
+          const uniprot_id = node.id;
+          this.loadProteinCard.emit(FrontTopology.topo.getProteinInfos(uniprot_id));
         })
         .onNodeHover(async (node: D3Node) => {
           // no state change
@@ -385,6 +452,9 @@ export class OmegaGraph {
           this.hovered_links = new Set([link]);
           this.hovered_nodes = link ? new Set([link.source, link.target]) : new Set;
           this.updateGeometries();
+        })
+        .onLinkClick((link: D3Link) => {
+          this.loadLinkCard.emit(link);
         })
         .d3Force('charge', d3.forceManyBody().strength(-90))
         .d3VelocityDecay(0.3);
@@ -507,7 +577,14 @@ export class OmegaGraph {
     for (const node of data.nodes) {
       const node_material = node.__threeObj.material as MeshLambertMaterial;
 
-      if (this.hovered_nodes.has(node)) {
+      if (this.history_hover_nodes.has(node.id)) {
+        if (node_material.color !== this.hovered_color) {
+          const clone = node_material.clone();
+          clone.color = this.hovered_color;
+          node.__threeObj.material = clone;
+        }
+      }
+      else if (this.hovered_nodes.has(node)) {
         if (node_material.color !== this.hovered_color) {
           const clone = node_material.clone();
           clone.color = this.hovered_color;
@@ -541,7 +618,12 @@ export class OmegaGraph {
     for (const link of data.links) {
       const material = link.__lineObj.material as Material;
 
-      if (this.highlighted_links.has(link) || this.hovered_links.has(link)) {
+      if (this.history_hover_links.has(link)) {
+        if (material !== this.link_hovered_material) {
+          link.__lineObj.material = this.link_hovered_material;
+        }
+      }
+      else if (this.highlighted_links.has(link) || this.hovered_links.has(link)) {
         if (material !== this.link_hovered_material) {
           link.__lineObj.material = this.link_hovered_material;
         }

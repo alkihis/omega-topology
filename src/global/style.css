@@ -32,7 +32,7 @@ body {
     margin: 0;
     pointer-events: none;
 
-    transition: background-color .3s;
+    transition: background-color .6s;
     background-color: black;
 }
 
@@ -48,6 +48,16 @@ body > * {
     display: none !important;
 }
 
+.pointer-no-select {
+    cursor: pointer;
+    user-select: none;
+}
+
+.center-block {
+    display: block !important;
+    margin: auto;
+}
+
 .embedded-preloader {
     height: 250px;
     width: 250px;
@@ -61,6 +71,15 @@ body > * {
     left: 0;
     width: 100%;
     height: 100%;
+}
+.preloader-initialisation-message {
+    display: block;
+    position: relative;
+    left: 50%;
+    top: 55%;
+    width: 300px;
+    margin: 0 0 0 -145px;
+    text-align: center;
 }
 .preloader-loader {
     display: block;

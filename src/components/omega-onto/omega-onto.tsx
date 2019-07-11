@@ -34,6 +34,8 @@ export class OmegaTaxo {
   @State()
   protected selected: [string, string][] = [];
 
+  protected last_try: string[];
+
   @Event({
     eventName: 'omega-onto.trim'
   }) trimByOntology: EventEmitter<string[]>;
@@ -85,11 +87,20 @@ export class OmegaTaxo {
   })
   async rebuildTree(e: CustomEvent<string[]>) {
     // Obtention du TreeAsAPI
+    this.last_try = e.detail;
+
     try {
       const data = await this.getOntology(e.detail);
       this.setData(data.tree);
     } catch (e) {
       this.in_error = true;
+    }
+  }
+
+  protected retryLoad() {
+    if (this.last_try) {
+      this.in_error = false;
+      this.rebuildTree(new CustomEvent('refresh', { detail: this.last_try }));
     }
   }
 
@@ -103,6 +114,22 @@ export class OmegaTaxo {
 
   protected async trimTaxons(empty_force = false) {
     this.trimByOntology.emit(empty_force ? [] : await this.tree.getSelected(e => e.original.misc.id));
+  }
+
+  protected errorMessage() {
+    return (
+      <div>
+        <div class="row">
+          <div class="col text-center"><i class="material-icons text-danger" style={{ 'font-size': '48px' }}>error</i></div>
+        </div>
+        <div class="row font-weight-bold">
+          <div class="col text-center">Unable to load tree.</div>
+        </div>
+        <div class={"row font-weight-bold text-primary pointer-no-select" + (this.last_try ? "" : " hide")} style={{ 'margin-top': '10px' }}>
+          <div class="col text-center" onClick={() => this.retryLoad()}><i class="material-icons float-left">refresh</i>Reload</div>
+        </div>
+      </div>
+    );
   }
 
   /**
@@ -120,7 +147,7 @@ export class OmegaTaxo {
 
             <selectionnable-tree name="ontology" select_all_on_change={true} class={this._has_data ? "" : "hide"}></selectionnable-tree>
 
-            <div class="options">
+            <div class={(this._has_data ? "" : "hide") + " options"}>
               <div class={this._has_data ? "" : "hide"}>{(this.selected.length ? this.selected.length : "Any") + " method" + (this.selected.length > 1 ? "s" : "") + " selected"}</div>
               
               <button class="left btn btn-secondary" style={{'margin-top': '5px', 'margin-right': '5px'}} onClick={() => this.trimTaxons(true)}>Reset methods</button>
@@ -130,12 +157,7 @@ export class OmegaTaxo {
           </div>
 
           <div class={(this.in_error ? "" : "hide") + " text-center"}>
-            <div class="row">
-              <div class="col text-center"><i class="material-icons text-danger" style={{'font-size': '48px'}}>error</i></div>
-            </div>
-            <div class="row font-weight-bold">
-              <div class="col text-center">Unable to load tree.</div>
-            </div>
+            {this.errorMessage()}
           </div>
         </div>
 

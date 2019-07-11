@@ -16,6 +16,9 @@ import {
   TrimProperties,
 } from './utils/types';
 import {
+  UniprotProtein,
+} from 'omega-topology-fullstack/build/UniprotContainer';
+import {
   SubNode,
   TreeLike,
 } from '@mmsb/selectionnable-tree';
@@ -48,6 +51,12 @@ export namespace Components {
     'toJSON': () => Promise<string>;
     'toTabular': () => Promise<string>;
   }
+  interface OmegaMitabCard {
+    'data': D3Link;
+    'hide': () => Promise<void>;
+    'preload': () => Promise<void>;
+    'show': () => Promise<void>;
+  }
   interface OmegaOnto {
     'getData': () => Promise<TreeLike[]>;
     'setData': (d: SubNode) => Promise<void>;
@@ -70,6 +79,12 @@ export namespace Components {
       e_value?: string
     };
   }
+  interface OmegaUniprotCard {
+    'data': UniprotProtein;
+    'hide': () => Promise<void>;
+    'preload': () => Promise<void>;
+    'show': () => Promise<void>;
+  }
 }
 
 declare global {
@@ -85,6 +100,12 @@ declare global {
   var HTMLOmegaGraphElement: {
     prototype: HTMLOmegaGraphElement;
     new (): HTMLOmegaGraphElement;
+  };
+
+  interface HTMLOmegaMitabCardElement extends Components.OmegaMitabCard, HTMLStencilElement {}
+  var HTMLOmegaMitabCardElement: {
+    prototype: HTMLOmegaMitabCardElement;
+    new (): HTMLOmegaMitabCardElement;
   };
 
   interface HTMLOmegaOntoElement extends Components.OmegaOnto, HTMLStencilElement {}
@@ -128,9 +149,16 @@ declare global {
     prototype: HTMLOmegaTrimElement;
     new (): HTMLOmegaTrimElement;
   };
+
+  interface HTMLOmegaUniprotCardElement extends Components.OmegaUniprotCard, HTMLStencilElement {}
+  var HTMLOmegaUniprotCardElement: {
+    prototype: HTMLOmegaUniprotCardElement;
+    new (): HTMLOmegaUniprotCardElement;
+  };
   interface HTMLElementTagNameMap {
     'omega-download': HTMLOmegaDownloadElement;
     'omega-graph': HTMLOmegaGraphElement;
+    'omega-mitab-card': HTMLOmegaMitabCardElement;
     'omega-onto': HTMLOmegaOntoElement;
     'omega-prune': HTMLOmegaPruneElement;
     'omega-reheat': HTMLOmegaReheatElement;
@@ -138,6 +166,7 @@ declare global {
     'omega-tabs': HTMLOmegaTabsElement;
     'omega-taxo': HTMLOmegaTaxoElement;
     'omega-trim': HTMLOmegaTrimElement;
+    'omega-uniprot-card': HTMLOmegaUniprotCardElement;
   }
 }
 
@@ -147,6 +176,9 @@ declare namespace LocalJSX {
     'onOmega-download.download-as-file'?: (event: CustomEvent<string>) => void;
   }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
+    'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
+    'onOmega-graph.load-protein'?: (event: CustomEvent<Promise<UniprotProtein>>) => void;
+    'onOmega-graph.rebuild'?: (event: CustomEvent<void>) => void;
     'onOmega-graph.rebuild_onto'?: (event: CustomEvent<string[]>) => void;
     'onOmega-graph.rebuild_taxo'?: (event: CustomEvent<string[]>) => void;
     'onPrune-add-node'?: (event: CustomEvent<PruneAddProperty>) => void;
@@ -156,6 +188,11 @@ declare namespace LocalJSX {
     * Espèce modélisée par le graphe
     */
     'specie'?: string;
+  }
+  interface OmegaMitabCard extends JSXBase.HTMLAttributes<HTMLOmegaMitabCardElement> {
+    'data'?: D3Link;
+    'onOmega-mitab-card.hover-off'?: (event: CustomEvent<void>) => void;
+    'onOmega-mitab-card.hover-on'?: (event: CustomEvent<D3Link>) => void;
   }
   interface OmegaOnto extends JSXBase.HTMLAttributes<HTMLOmegaOntoElement> {
     'onOmega-onto.trim'?: (event: CustomEvent<string[]>) => void;
@@ -183,10 +220,16 @@ declare namespace LocalJSX {
     };
     'onTrim-property-change'?: (event: CustomEvent<TrimProperties>) => void;
   }
+  interface OmegaUniprotCard extends JSXBase.HTMLAttributes<HTMLOmegaUniprotCardElement> {
+    'data'?: UniprotProtein;
+    'onOmega-uniprot-card.hover-off'?: (event: CustomEvent<void>) => void;
+    'onOmega-uniprot-card.hover-on'?: (event: CustomEvent<string>) => void;
+  }
 
   interface IntrinsicElements {
     'omega-download': OmegaDownload;
     'omega-graph': OmegaGraph;
+    'omega-mitab-card': OmegaMitabCard;
     'omega-onto': OmegaOnto;
     'omega-prune': OmegaPrune;
     'omega-reheat': OmegaReheat;
@@ -194,6 +237,7 @@ declare namespace LocalJSX {
     'omega-tabs': OmegaTabs;
     'omega-taxo': OmegaTaxo;
     'omega-trim': OmegaTrim;
+    'omega-uniprot-card': OmegaUniprotCard;
   }
 }
 

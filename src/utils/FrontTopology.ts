@@ -49,13 +49,17 @@ const FrontTopology = new class FrontTopology {
 
       console.log("Go terms downloaded in", t.elapsed);
 
+      this.setupGoTerms();
+
+      window.dispatchEvent(new CustomEvent('FrontTopology.go-terms-downloaded'));
+
       t.reset();
 
       await this.topo.downloadNeededUniprotData();
 
       console.log('Download complete in', t.elapsed, '.');
 
-      this.setupUniprotData();
+      this.setupNetworkTable();
 
       window.dispatchEvent(new CustomEvent('FrontTopology.uniprot-downloaded'));
     });
@@ -126,11 +130,7 @@ const FrontTopology = new class FrontTopology {
     });
   }
 
-  /**
-   * Graph must have been constructed !!
-   * @param visible_only 
-   */
-  setupUniprotData(visible_only = true) {
+  protected setupGoTerms(visible_only = true) {
     // GO Chart
     const go = document.querySelector('go-chart');
 
@@ -172,6 +172,10 @@ const FrontTopology = new class FrontTopology {
 
       go.data = elements;
     }
+  }
+
+  protected setupNetworkTable() {
+    const nodes = this.topo.nodes;
 
     // Network table !
     const table = document.querySelector('network-table');
@@ -191,6 +195,16 @@ const FrontTopology = new class FrontTopology {
 
       table.data = tuples;
     }
+  }
+
+  /**
+   * Rebuild UniProt data (with GO Chart and Network table)
+   * Graph must have been constructed !!
+   * @param visible_only 
+   */
+  setupUniprotData(visible_only = true) {
+    this.setupGoTerms(visible_only);
+    this.setupNetworkTable();
   }
 
   protected getD3GraphBaseFromOmegaTopology() {
@@ -301,6 +315,14 @@ const FrontTopology = new class FrontTopology {
   
   get percentage_mitab() {
     return (this.mitab_downloaded / this.mitab_total) * 100;
+  }
+
+  get mitab_loaded() {
+    if (this.topo) {
+      return this.topo.mitab_loaded;
+    }
+
+    return false;
   }
 }
 

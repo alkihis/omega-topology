@@ -1,0 +1,28 @@
+[omega-uniprot-card-base] {
+    position: absolute !important;
+    z-index: 1001;
+    right: 15px;
+    top: 5vh;
+    min-height: 20vh;
+    max-height: 90vh;
+    max-width: 40vw;
+    width: 500px;
+    transition: transform ease-in-out .3s;
+}
+
+[omega-uniprot-card-base].hidden {
+    transform: translateX(calc(100% + 16px));
+}
+
+[omega-uniprot-card-base] .card-body {
+    overflow: auto;
+}
+
+[omega-uniprot-card-base] .custom-list li.list-group-item {
+    border-radius: 0 !important;
+    transition: background-color .2s;
+}
+
+[omega-uniprot-card-base] .custom-list > li.pointer-no-select:hover {
+    background-color: rgb(230, 230, 230);
+}
