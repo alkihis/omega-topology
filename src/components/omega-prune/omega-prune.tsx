@@ -20,12 +20,16 @@ export class OmegaTrim {
   }
 
   @Event({
-    eventName: "prune-select-nodes"
+    eventName: "omega-prune.selection"
   }) selectEvent: EventEmitter<void>;
 
   @Event({
-    eventName: "prune-end-select-nodes"
+    eventName: "omega-prune.end-selection"
   }) endSelectEvent: EventEmitter<void>;
+
+  @Event({
+    eventName: "omega-prune.unselect-all"
+  }) unSelectEvent: EventEmitter<void>;
 
   @State() selected: string[] = [];
 
@@ -41,20 +45,20 @@ export class OmegaTrim {
     this.el.classList.toggle('hide-elements');
   }
 
-  @Listen('prune-add-node', { target: 'window' })
+  @Listen('omega-graph.prune-add', { target: 'window' })
   protected addNode(e: CustomEvent<PruneAddProperty>) {
     const to_add = typeof e.detail === 'string' ? [e.detail as string] : [...e.detail as string[]];
     this.selected = [...new Set([...this.selected, ...to_add])];
   }
 
-  @Listen('prune-delete-node', { target: 'window' })
+  @Listen('omega-graph.prune-remove', { target: 'window' })
   protected removeNode(e: CustomEvent<PruneDeleteProperty>) {
     const s = new Set(this.selected);
     s.delete(e.detail);
     this.selected = [...s];
   }
 
-  @Listen('prune-reset-nodes', { target: 'window' })
+  @Listen('omega-graph.prune-reset', { target: 'window' })
   protected resetNodes() {
     this.selected = [];
     this.endSelection();
@@ -67,6 +71,11 @@ export class OmegaTrim {
 
   protected endSelection() {
     this.endSelectEvent.emit();
+    this.in_selection = false;
+  }
+
+  protected resetSelection() {
+    this.unSelectEvent.emit();
     this.in_selection = false;
   }
 
@@ -88,7 +97,7 @@ export class OmegaTrim {
     return (
       <div class="container">
         <div class="row">
-          <div class="col" style={{'padding-left': '0'}}>
+          <div class="col" style={{'padding-left': '0', 'min-width': '300px'}}>
             <div class={this.uniprot_loaded ? "" : "hide"}>
               <network-table></network-table>
             </div>
@@ -110,18 +119,20 @@ export class OmegaTrim {
 
             <div select-element>
               <button type="button" class="btn btn-primary btn-block" style={{ 'margin-right': '5px' }} onClick={this.in_selection ? () => this.endSelection() : () => this.beginSelection()}>{this.in_selection ? "Finish selection" : "Select nodes"}</button>
-              <button type="button" class={this.selected.length ? "btn btn-warning btn-block" : "btn btn-danger btn-block"} onClick={() => this.emitPrune()}>{this.selected.length ? "Prune" : "Reset graph"}</button>
+              <button type="button" class={this.selected.length ? "btn btn-dark btn-block" : "hide"} onClick={() => this.emitPrune()}>Cancel prune</button>
+              <button type="button" class={this.selected.length ? "btn btn-warning btn-block" : "btn btn-danger btn-block"} onClick={() => this.emitPrune()}>{this.selected.length ? "Prune" : "Cancel prune"}</button>
 
               <hr></hr>
 
               <form style={{ 'margin-top': '5px' }}>
                 <div class="form-group">
-                  <label htmlFor="select_distance">Maximum distance<br></br></label>
+                  <label htmlFor="select_distance">Maximum distance from seeds<br></br></label>
                   <select class="form-control" id="select_distance" onChange={e => this.updateDistance(e)}>
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
-                    <option value="Inf" selected>Infinite</option>
+                    <option value="4">4</option>
+                    <option value="Inf" selected>Infinity</option>
                   </select>
                 </div>
               </form>

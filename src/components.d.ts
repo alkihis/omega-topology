@@ -69,7 +69,9 @@ export namespace Components {
   interface OmegaPrune {}
   interface OmegaReheat {}
   interface OmegaReset {}
-  interface OmegaTabs {}
+  interface OmegaTabs {
+    'goToTab': (tab: string) => Promise<void>;
+  }
   interface OmegaTaxo {
     'getData': () => Promise<TreeLike[]>;
     'setData': (d: SubNode) => Promise<void>;
@@ -86,6 +88,7 @@ export namespace Components {
   }
   interface OmegaUniprotCard {
     'data': UniprotProtein;
+    'error_mode': boolean;
     'hide': () => Promise<void>;
     'preload': () => Promise<void>;
     'show': () => Promise<void>;
@@ -184,12 +187,12 @@ declare namespace LocalJSX {
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
     'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
     'onOmega-graph.load-protein'?: (event: CustomEvent<Promise<UniprotProtein>>) => void;
+    'onOmega-graph.prune-add'?: (event: CustomEvent<PruneAddProperty>) => void;
+    'onOmega-graph.prune-remove'?: (event: CustomEvent<PruneDeleteProperty>) => void;
+    'onOmega-graph.prune-reset'?: (event: CustomEvent<void>) => void;
     'onOmega-graph.rebuild'?: (event: CustomEvent<void>) => void;
     'onOmega-graph.rebuild_onto'?: (event: CustomEvent<string[]>) => void;
     'onOmega-graph.rebuild_taxo'?: (event: CustomEvent<string[]>) => void;
-    'onPrune-add-node'?: (event: CustomEvent<PruneAddProperty>) => void;
-    'onPrune-delete-node'?: (event: CustomEvent<PruneDeleteProperty>) => void;
-    'onPrune-reset-nodes'?: (event: CustomEvent<void>) => void;
     /**
     * Espèce modélisée par le graphe
     */
@@ -204,8 +207,9 @@ declare namespace LocalJSX {
     'onOmega-onto.trim'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaPrune extends JSXBase.HTMLAttributes<HTMLOmegaPruneElement> {
-    'onPrune-end-select-nodes'?: (event: CustomEvent<void>) => void;
-    'onPrune-select-nodes'?: (event: CustomEvent<void>) => void;
+    'onOmega-prune.end-selection'?: (event: CustomEvent<void>) => void;
+    'onOmega-prune.selection'?: (event: CustomEvent<void>) => void;
+    'onOmega-prune.unselect-all'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaReheat extends JSXBase.HTMLAttributes<HTMLOmegaReheatElement> {
     'onOmega-reheat.reheat'?: (event: CustomEvent<void>) => void;
@@ -229,6 +233,7 @@ declare namespace LocalJSX {
   }
   interface OmegaUniprotCard extends JSXBase.HTMLAttributes<HTMLOmegaUniprotCardElement> {
     'data'?: UniprotProtein;
+    'error_mode'?: boolean;
     'onOmega-uniprot-card.hover-off'?: (event: CustomEvent<void>) => void;
     'onOmega-uniprot-card.hover-on'?: (event: CustomEvent<string>) => void;
   }

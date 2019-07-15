@@ -1,6 +1,7 @@
 import { Component, h, Listen, Element, Method, State, Event, EventEmitter } from '@stencil/core';
 import { TreeAsAPI, TreeLike, SubNode } from '@mmsb/selectionnable-tree';
 import { TAXONOMY_URL } from '../../utils/utils';
+import FrontTopology from '../../utils/FrontTopology';
 
 @Component({
   tag: "omega-taxo",
@@ -14,6 +15,7 @@ export class OmegaTaxo {
 
   @State() mitab_loaded = false;
   @State() mitab_percent = 0;
+  @State() mitab_socket_error = false;
 
   @Listen('FrontTopology.mitab-downloaded', { target: 'window' })
   loadMitab() {
@@ -21,8 +23,15 @@ export class OmegaTaxo {
   }
 
   @Listen('FrontTopology.mitab-download-update', { target: 'window' })
-  updateMitab(e: CustomEvent<number>) {
-    this.mitab_percent = e.detail;
+  updateMitab(e: CustomEvent<number | null>) {
+    if (e.detail === null) {
+      // socket error !
+      this.mitab_socket_error = true;
+    }
+    else {
+      this.mitab_socket_error = false
+      this.mitab_percent = e.detail;
+    }
   }
 
   protected last_try: string[];
@@ -105,6 +114,12 @@ export class OmegaTaxo {
     }
   }
 
+  protected retryMitabLoad() {
+    FrontTopology.downloadMitabLines(true);
+    this.mitab_loaded = false;
+    this.mitab_socket_error = false;
+  }
+
   protected async getTaxonomy(list: string[]): Promise<{ tree: TreeAsAPI }> {
     return fetch(TAXONOMY_URL + '/tree', {
       method: 'POST',
@@ -128,6 +143,22 @@ export class OmegaTaxo {
         </div>
         <div class={"row font-weight-bold text-primary pointer-no-select" + (this.last_try ? "" : " hide")} style={{ 'margin-top': '10px' }}>
           <div class="col text-center" onClick={() => this.retryLoad()}><i class="material-icons float-left">refresh</i>Reload</div>
+        </div>
+      </div>
+    );
+  }
+
+  protected mitabErrorMessage() {
+    return (
+      <div>
+        <div class="row">
+          <div class="col text-center"><i class="material-icons text-danger" style={{ 'font-size': '48px' }}>error</i></div>
+        </div>
+        <div class="row font-weight-bold">
+          <div class="col text-center">Unable to load interactions informations.</div>
+        </div>
+        <div class={"row font-weight-bold text-primary pointer-no-select" + (this.last_try ? "" : " hide")} style={{ 'margin-top': '10px' }}>
+          <div class="col text-center" onClick={() => this.retryMitabLoad()}><i class="material-icons float-left">refresh</i>Reload</div>
         </div>
       </div>
     );
@@ -162,10 +193,16 @@ export class OmegaTaxo {
         </div>
 
         <div class={this.mitab_loaded ? "hide" : ""}>
-          <div class="embedded-preloader">
-            <div class="preloader-loader"></div>
+          <div class={(this.mitab_socket_error ? "" : "hide") + " text-center"}>
+            {this.mitabErrorMessage()}
           </div>
-          <div class="text-center font-weight-bold">Loading MI Tab data ({this.mitab_percent.toFixed(1)}%)...</div>
+
+          <div class={this.mitab_socket_error ? "hide" : ""}>
+            <div class="embedded-preloader">
+              <div class="preloader-loader"></div>
+            </div>
+            <div class="text-center font-weight-bold">Loading MI Tab data ({this.mitab_percent.toFixed(1)}%)...</div>
+          </div>
         </div>
       </div>
     );

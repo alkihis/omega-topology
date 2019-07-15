@@ -403,7 +403,7 @@ export class OmegaMitabCard {
     const elements = [];
 
     for (const prot of this.history) {
-      elements.push(<li class="list-group-item pointer-no-select"
+      elements.push(<li class={"list-group-item pointer-no-select" + (prot === this.data ? " font-weight-bold" : "")}
         onMouseOver={() => this.hoverOn.emit(prot)} 
         onMouseOut={() => this.hoverOff.emit()} 
         onClick={() => this.loadLinkData(prot)}
@@ -411,9 +411,6 @@ export class OmegaMitabCard {
     }
 
     elements.reverse();
-    
-    if (elements.length)
-      elements[0].class = "list-group-item pointer-no-select font-weight-bold"; 
 
     return (
       <ul class="list-group custom-list">

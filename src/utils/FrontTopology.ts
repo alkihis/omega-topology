@@ -15,6 +15,7 @@ const FrontTopology = new class FrontTopology {
 
   protected socket: SocketIOClient.Socket;
   protected socket_promise: Promise<void> = undefined;
+  protected socket_io_fail = false;
 
   protected current_specie: string;
   
@@ -45,23 +46,34 @@ const FrontTopology = new class FrontTopology {
       const t = new Timer;
       console.log("Downloading GO Terms...");
 
-      await this.topo.downloadGoTerms(...this.topo.nodes.map(e => e[0]));
+      try {
+        await this.topo.downloadGoTerms(...this.topo.nodes.map(e => e[0]));
+        console.log("Go terms downloaded in", t.elapsed);
 
-      console.log("Go terms downloaded in", t.elapsed);
+        this.setupGoTerms();
 
-      this.setupGoTerms();
+        window.dispatchEvent(new CustomEvent('FrontTopology.go-terms-downloaded'));
+      } catch (e) {
+        console.error("Error while fetching GO Terms:", e);
+        window.dispatchEvent(new CustomEvent('FrontTopology.go-terms-download-error', { detail: e }));
 
-      window.dispatchEvent(new CustomEvent('FrontTopology.go-terms-downloaded'));
+        // N'essaie pas plus: c'est le même endpoint
+        return;
+      }
 
       t.reset();
 
-      await this.topo.downloadNeededUniprotData();
-
-      console.log('Download complete in', t.elapsed, '.');
-
-      this.setupNetworkTable();
-
-      window.dispatchEvent(new CustomEvent('FrontTopology.uniprot-downloaded'));
+      try {
+        await this.topo.downloadNeededUniprotData();
+        console.log('Download complete in', t.elapsed, '.');
+  
+        this.setupNetworkTable();
+  
+        window.dispatchEvent(new CustomEvent('FrontTopology.uniprot-downloaded'));
+      } catch (e) {
+        console.error("Error while fetching UniProt data:", e);
+        window.dispatchEvent(new CustomEvent('FrontTopology.uniprot-download-error', { detail: e }));
+      }
     });
 
     if (auto_mitab_dl) {
@@ -74,20 +86,31 @@ const FrontTopology = new class FrontTopology {
 
   protected resetSocketIo() {
     this.socket.disconnect();
-    console.log("Resetted listeners");
     this.socket.removeAllListeners();
+    this.socket_io_fail = false;
 
     this.mitab_promise = undefined;
 
     return this.socket_promise = new Promise((resolve, reject) => {
       this.socket.connect();
       this.socket.on('connect', resolve);
-      this.socket.on('reconnected_failed', reject);
+      this.socket.on('connect_error', () => { 
+        reject(); 
+        this.socket_io_fail = true; 
+        window.dispatchEvent(new CustomEvent<number>('FrontTopology.mitab-download-update', { detail: null }));
+      });
     });
   }
 
-  downloadMitabLines() {
-    return this.mitab_promise = this.socket_promise.then(() => {
+  async downloadUniprotData() {
+    await this.topo.downloadGoTerms(...this.topo.nodes.map(e => e[0]));
+    this.setupGoTerms();
+    await this.topo.downloadNeededUniprotData();
+    this.setupNetworkTable();
+  }
+
+  downloadMitabLines(reset_socket_io = false) {
+    return this.mitab_promise = (reset_socket_io ? this.resetSocketIo() : this.socket_promise).then(() => {
       // récupère les pairs
       const pairs = this.topology.uniqueTemplatePairs(false);
 

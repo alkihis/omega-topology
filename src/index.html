@@ -32,9 +32,40 @@
 
     <omega-graph></omega-graph>
   </div>  
+
+  <div style="
+    position: absolute;
+    width: 80%;
+    top: 25px;
+    margin-left: 10%;
+    display: none;"
+  >
+    <div class="alert alert-danger" id="__uniprot_data_error_message__" role="alert">
+      <span class="alert-content"></span>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  </div>
   
   <omega-uniprot-card></omega-uniprot-card>
   <omega-mitab-card></omega-mitab-card>
 
+  <!-- Modal en cas d'échec de téléchargement -->
+  <div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" id="__modal_fail_initialisation__" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">Unable to load graph data</h5>
+        </div>
+        <div class="modal-body">
+          <p>
+            Please refresh this page or try again later.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+    
 </body>
 </html>

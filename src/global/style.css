@@ -81,8 +81,9 @@ body > * {
 .embedded-preloader {
     height: 250px;
     width: 250px;
-    display: inline-grid;
     overflow: hidden;
+    margin: auto;
+    display: block;
 }
 
 .preloader {

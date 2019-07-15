@@ -16,6 +16,8 @@ export class OmegaUniprotCard {
   @State()
   protected history_shown = false;
 
+  @Prop() error_mode = false;
+
   @State()
   protected history: UniprotProtein[] = [];
 
@@ -69,15 +71,21 @@ export class OmegaUniprotCard {
 
     this.data = undefined;
     this.in_preload = true;
+    this.error_mode = false;
     this.last_loaded = e;
     this.show();
 
-    const data = await e;
+    let data: UniprotProtein;
+    try {
+      data = await e;
+      this.addInHistory(data);
 
-    this.addInHistory(data);
-
-    if (this.last_loaded === e) {
-      this.data = data;
+      if (this.last_loaded === e) {
+        this.data = data;
+      }
+    } catch (c) {
+      this.error_mode = true;
+      this.in_preload = false;
     }
   }
 
@@ -196,6 +204,17 @@ export class OmegaUniprotCard {
     );
   }
 
+  protected errorMessage() {
+    return (
+      <div>
+        <h5 class="text-primary card-title text-danger">Informations couldn't be retrieved</h5>
+        <p class="card-text">
+          UniProt informations couldn't be downloaded. Try again later.
+        </p>
+      </div>
+    );
+  }
+
   protected toggleHistory() {
     this.history_shown = !this.history_shown;
     this.hoverOff.emit();
@@ -205,7 +224,7 @@ export class OmegaUniprotCard {
     const elements: JSXBase.LiHTMLAttributes<HTMLLIElement>[] = [];
 
     for (const prot of this.history) {
-      elements.push(<li class="list-group-item pointer-no-select" 
+      elements.push(<li class={"list-group-item pointer-no-select" + (prot === this.data ? " font-weight-bold" : "")}
         onMouseOver={e => this.hoverOn.emit((e.currentTarget as HTMLElement).innerText)} 
         onMouseOut={() => this.hoverOff.emit()} 
         onClick={() => this.loadProteinData(Promise.resolve(prot))}
@@ -213,9 +232,6 @@ export class OmegaUniprotCard {
     }
 
     elements.reverse();
-    
-    if (elements.length)
-      elements[0].class = "list-group-item pointer-no-select font-weight-bold"; 
 
     return (
       <ul class="list-group custom-list">
@@ -232,13 +248,13 @@ export class OmegaUniprotCard {
     return (
       <div omega-uniprot-card-base class="card hidden">
         <h5 class="card-header">
-          {this.data ? <a href={'https://www.uniprot.org/uniprot/' + this.data.accession} target="_blank">{this.data.accession}</a> : (this.in_preload ? "Loading..." : "Protein data card")}
+          {this.data ? <a href={'https://www.uniprot.org/uniprot/' + this.data.accession} target="_blank">{this.data.accession}</a> : (this.in_preload ? "Loading..." : "Error")}
           <i class={"material-icons float-right pointer-no-select" + (this.history_shown ? " text-primary" : "")} onClick={() => this.toggleHistory()}>history</i>
         </h5>
 
         <div class="card-body">
           <div class={this.in_preload ? "hide" : ""}>
-            {this.data ? this.generateUniprotHTML() : this.noLoadMessage()}
+            {this.data ? this.generateUniprotHTML() : (this.error_mode ? this.errorMessage() : this.noLoadMessage())}
           </div>
 
           <div class={!this.in_preload ? "hide" : ""}>

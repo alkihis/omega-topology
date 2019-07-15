@@ -26,15 +26,15 @@ export class OmegaGraph {
   @Element() el: HTMLElement;
 
   @Event({
-    eventName: "prune-add-node"
+    eventName: "omega-graph.prune-add"
   }) addSelectedNode: EventEmitter<PruneAddProperty>;
 
   @Event({
-    eventName: "prune-delete-node"
+    eventName: "omega-graph.prune-remove"
   }) removeSelectedNode: EventEmitter<PruneDeleteProperty>;
 
   @Event({
-    eventName: "prune-reset-nodes"
+    eventName: "omega-graph.prune-reset"
   }) resetSelectedNodes: EventEmitter<void>;
 
   @Event({
@@ -124,11 +124,41 @@ export class OmegaGraph {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
+    const promise_terms_download = new Promise((resolve, reject) => {
+      // Attends 30 secondes au maximum
+      const remove_evt_lst = () => {
+        window.removeEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
+        window.removeEventListener('FrontTopology.go-terms-download-error', error_fn);
+      }
+
+      const resolve_fn = () => {
+        resolve();
+        remove_evt_lst();
+        clearTimeout(timeout);
+      };
+
+      const error_fn = () => {
+        reject();
+        remove_evt_lst();
+        clearTimeout(timeout);
+      };
+
+      window.addEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
+      window.addEventListener('FrontTopology.go-terms-download-error', error_fn);
+      const timeout = setTimeout(error_fn, 30000);
+    });
+
     try {
       await FrontTopology.init(this.specie);
     } catch (e) {
       console.error("Unable to load specie skeleton", e);
       // Afficher un message d'erreur en position absolute.
+      const fail_init = document.getElementById('__modal_fail_initialisation__');
+
+      if (fail_init) {
+        //@ts-ignore
+        $(fail_init).modal({ keyboard: false, backdrop: 'static', show: true });
+      }
     }
     
     if (with_slowdown) {
@@ -144,18 +174,17 @@ export class OmegaGraph {
       if (preloader_infos)
         preloader_infos.innerText = "Downloading UniProt metadata";
       
-      await new Promise((resolve, reject) => {
-        // Attends 15 secondes au maximum
-        const timeout = setTimeout(reject, 15000);
+      try {
+        // Télécharge les données et attend ! 
+        await promise_terms_download;
+      } catch (e) {
+        const alert_element = document.querySelector('#__uniprot_data_error_message__ .alert-content') as HTMLElement;
 
-        const resolve_fn = () => {
-          resolve();
-          window.removeEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
-          clearTimeout(timeout);
-        };
-
-        window.addEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
-      });
+        if (alert_element) {
+          alert_element.innerHTML = "<strong>Unable to load UniProt data.</strong> Some data will be inaccessible. Try refreshing this page later.";
+          alert_element.parentElement.parentElement.style.display = "";
+        }
+      }
     }
 
     if (loader) {
@@ -165,13 +194,15 @@ export class OmegaGraph {
     // FrontTopology.trim({ similarity: Number(BASE_SIMILARITY), coverage: Number(BASE_COVERAGE), identity: Number(BASE_IDENTITY), definitive: true });
     FrontTopology.showGraph();
 
-    FrontTopology.downloadMitabLines()
-      .then(() => {
-        if (FrontTopology.percentage_mitab >= 100) {
-          this.buildTaxoTree.emit([...FrontTopology.taxo_ids]);
-          this.buildOntoTree.emit([...FrontTopology.onto_ids]);
-        }
-      });
+    FrontTopology.downloadMitabLines();
+  }
+
+  @Listen('FrontTopology.mitab-downloaded', { target: 'window' })
+  updateTrees() {
+    if (FrontTopology.mitab_loaded) {
+      this.buildTaxoTree.emit([...FrontTopology.taxo_ids]);
+      this.buildOntoTree.emit([...FrontTopology.onto_ids]);
+    }
   }
 
   componentDidUpdate() {
@@ -290,10 +321,7 @@ export class OmegaGraph {
     this.clip(node_index, link_index);
 
     // Actualise les arbres si les infos mitab sont disponibles
-    if (FrontTopology.percentage_mitab >= 100) {
-      this.buildTaxoTree.emit([...FrontTopology.taxo_ids]);
-      this.buildOntoTree.emit([...FrontTopology.onto_ids]);
-    }
+    this.updateTrees();
 
     FrontTopology.setupUniprotData();
   }
@@ -360,14 +388,19 @@ export class OmegaGraph {
     FrontTopology.trim({ taxons: event.detail });
   }
 
-  @Listen('prune-select-nodes', { target: 'window' })
+  @Listen('omega-prune.selection', { target: 'window' })
   startSelection() {
     this.in_selection = true;
   }
 
-  @Listen('prune-end-select-nodes', { target: 'window' })
+  @Listen('omega-prune.end-selection', { target: 'window' })
   stopSelection() {
     this.in_selection = false;
+  }
+
+  @Listen('omega-prune.unselect-all', { target: 'window' })
+  unselectAll() {
+    this.resetHighlighting();
   }
 
   @Listen('omega-uniprot-card.hover-on', { target: 'window' })
@@ -808,9 +841,20 @@ export class OmegaGraph {
     finalize_function?: (composed: T) => R
   ) : Promise<R | string> {
     let previous_return: T;
+    const exising_links = new ReversibleKeyMap<string, string, boolean>();
+
+    for (const link of this.actual_data.links) {
+      if (typeof link.source === 'string' && typeof link.target === 'string') {
+        exising_links.set(link.source, link.target, true);
+      }
+      else {
+        exising_links.set(link.source.id, link.target.id, true);
+      }
+    }
 
     for (const link of (this.three_d_graph.graphData() as D3GraphBase).links) {
-      previous_return = encoder(link, link.source, link.target, previous_return);
+      if (exising_links.hasCouple(link.target.id, link.source.id))
+        previous_return = encoder(link, link.source, link.target, previous_return);
     }
 
     if (finalize_function) {

@@ -1,4 +1,4 @@
-import { Component, h, Element, Host, Listen, State } from '@stencil/core';
+import { Component, h, Element, Host, Listen, State, Method } from '@stencil/core';
 
 @Component({
   tag: "omega-tabs",
@@ -17,17 +17,27 @@ export class OmegaTrim {
     this.uniprot_loaded = true;
   }
 
-  protected click(e: Event) {
-    const el = e.target as HTMLAnchorElement;
+  @Method()
+  async goToTab(tab: string) {
+    return this._goToTab(tab);
+  }
 
+  protected click(e: Event) {
+    this._goToTab((e.target as HTMLAnchorElement).dataset.related);
+  }
+
+  protected _goToTab(related_to: string) {
     this.hideAll();
 
-    const is_active = el.classList.contains('active');
+    const related_e = this.el.querySelector(`ul [data-related="${related_to}"]`) as HTMLElement;
+
+    const is_active = related_e.classList.contains('active');
 
     this.removeActive();
 
+    // Si c'est pas actif, on montre (sinon il sera caché)
     if (!is_active) {
-      this.makeActive(el.dataset.related, el.dataset.padding ? el.dataset.padding : undefined);
+      this.makeActive(related_e.dataset.related);
     }    
   }
 
@@ -42,11 +52,15 @@ export class OmegaTrim {
     this.el.querySelectorAll(`ul .active`).forEach(e => e.classList.remove('active'));
   }
 
-  protected makeActive(element: string, custom_padding = '15') {
+  protected makeActive(element: string) {
+    const related_e = this.el.querySelector(`ul [data-related="${element}"]`) as HTMLElement;
+    const tab_content_e = this.el.querySelector(`[tabs-container] [data-name="${element}"]`) as HTMLElement;
+    const custom_padding = tab_content_e.dataset.padding ? tab_content_e.dataset.padding : '15';
+
     this.el.querySelectorAll('.last-active').forEach(e => e.classList.remove('last-active'));
 
-    this.el.querySelector(`ul [data-related="${element}"]`).classList.add('active');
-    this.el.querySelector(`[tabs-container] [data-name="${element}"]`).classList.remove('hide');
+    related_e.classList.add('active');
+    tab_content_e.classList.remove('hide');
     (this.el.querySelector(`[tabs-container]`) as HTMLElement).style.padding = custom_padding + 'px';
     this.el.querySelector('[tabs-container] [hide-container]').classList.remove('force-hide');
     this.el.querySelector('[tabs-container] [hide-container] i').innerHTML = "arrow_left";
@@ -93,7 +107,7 @@ export class OmegaTrim {
             <a class="nav-link" href="#" data-related="prune" onClick={e => this.click(e)}>Pruning</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#" data-related="go" data-padding="5" onClick={e => this.click(e)}>GO Terms</a>
+            <a class="nav-link" href="#" data-related="go" onClick={e => this.click(e)}>GO Terms</a>
           </li>
         </ul>
         <div tabs-container>
@@ -115,9 +129,11 @@ export class OmegaTrim {
             <div class="tab-target hide" data-name="prune">
               <omega-prune></omega-prune>
             </div>
-            <div class="tab-target hide" data-name="go">
+            <div class="tab-target hide" data-name="go" data-padding="10">
               <div class={this.uniprot_loaded ? "" : "hide"}>
                 <go-chart></go-chart>
+                <button type="button" onClick={() => this._goToTab('prune')} style={{'margin-top': '15px', 'margin-bottom': '5px'}}
+                class="btn btn-primary btn-block">Switch to pruning</button>
               </div>
               <div class={this.uniprot_loaded ? "hide" : ""}>
                 <div class="embedded-preloader">
