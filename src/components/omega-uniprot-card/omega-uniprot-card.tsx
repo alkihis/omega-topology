@@ -1,5 +1,6 @@
 import { Component, h, Prop, Listen, Element, Method, State, Watch, Event, EventEmitter } from '@stencil/core';
 import { UniprotProtein } from 'omega-topology-fullstack/build/UniprotContainer';
+import { JSXBase } from '@mmsb/selectionnable-tree/dist/types/stencil.core';
 
 @Component({
   tag: "omega-uniprot-card",
@@ -62,7 +63,7 @@ export class OmegaUniprotCard {
     window.removeEventListener('click', this.close_fn);
 
     // Disable history
-    this.el.querySelector('.collapse').classList.remove('show', 'collapsing');
+    this.closeHistory();
     this.history_shown = false;
     this.hoverOff.emit();
 
@@ -87,6 +88,12 @@ export class OmegaUniprotCard {
     }
   }
 
+  @Listen('omega-graph.rebuild', { target: 'window' })
+  resetHistory() {
+    if (this.history.length !== 0)
+      this.closeHistory(true);
+  }
+
   @Method()
   async show() {
     this.el.querySelector('[omega-uniprot-card-base]').classList.remove('hidden');
@@ -100,6 +107,16 @@ export class OmegaUniprotCard {
   async hide() {
     this.el.querySelector('[omega-uniprot-card-base]').classList.add('hidden');
     window.removeEventListener('click', this.close_fn);
+    this.closeHistory();
+  }
+
+  protected closeHistory(reset = false) {
+    if (reset)
+      this.history = [];
+
+    this.history_shown = false;
+    this.el.querySelector('.card-history').classList.remove('open');
+    this.hoverOff.emit();
   }
 
   protected addInHistory(p: UniprotProtein) {
@@ -111,8 +128,6 @@ export class OmegaUniprotCard {
   }
 
   protected generateUniprotHTML() {
-    console.log(this.data);
-
     const prot = this.data.protein;
     const name = prot.recommendedName ?
       prot.recommendedName.fullName.value :
@@ -155,11 +170,19 @@ export class OmegaUniprotCard {
         <hr></hr>
 
         <h6 class="card-subtitle">Sequence</h6>
-        <pre class="pre-scrollable" style={{'overflow-y': 'auto', 'margin-top': '5px'}}>
-          <code style={{'white-space': 'pre-wrap'}}>{Array.isArray(this.data.sequence) ? this.data.sequence[4] : this.data.sequence.sequence}</code>
-        </pre>
+
+        <div class="form-group" style={{'overflow-y': 'auto', 'margin-top': '5px', 'position': 'relative'}}>
+          <div class="copy-button pointer-no-select" onClick={() => this.copyContent(this.el.querySelector('textarea'))}><i class="material-icons">content_copy</i></div>
+          <textarea class="form-control" rows={3} 
+            value={Array.isArray(this.data.sequence) ? this.data.sequence[4] : this.data.sequence.sequence}></textarea>
+        </div>
       </div>
     );
+  }
+
+  protected copyContent(element: HTMLTextAreaElement) {
+    element.select();
+    document.execCommand("copy");
   }
 
   protected noLoadMessage() {
@@ -174,21 +197,14 @@ export class OmegaUniprotCard {
   }
 
   protected toggleHistory() {
-    // @ts-ignore
-    $(this.el.querySelector('.collapse')).collapse('toggle');
     this.history_shown = !this.history_shown;
     this.hoverOff.emit();
   }
 
   protected historyList() {
-    if (this.history.length < 2) {
-      return <ul class="list-group custom-list"><li class="list-group-item">History is empty.</li></ul>;
-    }
+    const elements: JSXBase.LiHTMLAttributes<HTMLLIElement>[] = [];
 
-    const elements = [];
-
-    for (let i = 0; i < this.history.length - 1; i++) {
-      const prot = this.history[i];
+    for (const prot of this.history) {
       elements.push(<li class="list-group-item pointer-no-select" 
         onMouseOver={e => this.hoverOn.emit((e.currentTarget as HTMLElement).innerText)} 
         onMouseOut={() => this.hoverOff.emit()} 
@@ -197,8 +213,16 @@ export class OmegaUniprotCard {
     }
 
     elements.reverse();
+    
+    if (elements.length)
+      elements[0].class = "list-group-item pointer-no-select font-weight-bold"; 
 
-    return <ul class="list-group custom-list">{elements}</ul>
+    return (
+      <ul class="list-group custom-list">
+        <li class="list-group-item font-weight-bold history-title">History</li>
+        {elements}
+      </ul>
+    );
   }
 
   /**
@@ -208,15 +232,9 @@ export class OmegaUniprotCard {
     return (
       <div omega-uniprot-card-base class="card hidden">
         <h5 class="card-header">
-          {this.data ? this.data.accession : (this.in_preload ? "Loading..." : "Protein data card")}
+          {this.data ? <a href={'https://www.uniprot.org/uniprot/' + this.data.accession} target="_blank">{this.data.accession}</a> : (this.in_preload ? "Loading..." : "Protein data card")}
           <i class={"material-icons float-right pointer-no-select" + (this.history_shown ? " text-primary" : "")} onClick={() => this.toggleHistory()}>history</i>
         </h5>
-
-        <div style={{position: 'relative'}}>
-          <div class="collapse" style={{position: 'absolute', width: '100%'}}>
-            {this.historyList()}
-          </div>
-        </div>
 
         <div class="card-body">
           <div class={this.in_preload ? "hide" : ""}>
@@ -227,6 +245,12 @@ export class OmegaUniprotCard {
             <div class="embedded-preloader center-block">
               <div class="preloader-loader"></div>
             </div>
+          </div>
+        </div>
+
+        <div class="card-history-container">
+          <div class={"card-history" + (this.history_shown ? " open" : "")}>
+            {this.historyList()}
           </div>
         </div>
       </div>

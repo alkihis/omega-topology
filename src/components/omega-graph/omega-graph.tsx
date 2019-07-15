@@ -9,6 +9,8 @@ import * as d3 from 'd3-force-3d';
 
 import { Color, Material, MeshLambertMaterial, LineBasicMaterial } from 'three';
 import { UniprotProtein } from 'omega-topology-fullstack/build/UniprotContainer';
+import Animator from './Animator';
+import { PSQData } from 'omega-topology-fullstack';
 
 // import * as jstree from '../../..//node_modules/jstree/dist/jstree';
 // import $ from 'jquery';
@@ -183,32 +185,25 @@ export class OmegaGraph {
     return <div graph-element></div>;
   }
 
-  protected clip(nodes: D3Node[], force = false) {
+  protected clip(nodes: Map<string, D3Node>, links: Map<string, Set<string>>) {
     for (const node of (this.three_d_graph.graphData().nodes as D3Node[])) {
-      node.__threeObj.visible = force ? node.__threeObj.visible : false;
-
-      for (const centerNode of nodes) {
-        if (node.id === centerNode.id /* || this._links_to_nodes.hasCouple(node.id, centerNode.id) */) {
-          // console.log('i will show ' + node.id);
-          node.__threeObj.visible = true;
-          break;
-        }
-      }
+      node.__threeObj.visible = nodes.has(node.id);
     }
 
     for (const link of (this.three_d_graph.graphData().links as D3Link[])) {
-      link.__lineObj.visible = force ? link.__lineObj.visible : false;
+      link.__lineObj.visible = false;
     }
 
-    for (const centerNode of nodes) {
-      const linkByPartner = this._links_to_nodes.getAllFrom(centerNode.id);
+    for (const centerNode of nodes.keys()) {
+      const linkByPartner = this._links_to_nodes.getAllFrom(centerNode);
 
       if (linkByPartner)
-        for (const [id, partner] of linkByPartner.entries()) {
-          if (partner.source.id === id && partner.source.__threeObj.visible) {
-            partner.__lineObj.visible = true;
+        for (const [, partner] of linkByPartner.entries()) {
+          if (partner.__lineObj.visible) {
+            continue;
           }
-          else if (partner.target.id === id && partner.target.__threeObj.visible) {
+          
+          if (links.has(partner.source.id) && links.get(partner.source.id).has(partner.target.id)) {
             partner.__lineObj.visible = true;
           }
         }
@@ -253,27 +248,46 @@ export class OmegaGraph {
 
     this._actual_data = data;
 
+    const node_index = new Map<string, D3Node>();
+    for (const node of this._actual_data.nodes) {
+      node_index.set(node.id, node);
+    } 
+
     // Register les groupes de façon asynchrone
     setTimeout(() => {
-      const nodes = new Map<string, D3Node>();
-      for (const node of this._actual_data.nodes) {
-        nodes.set(node.id, node);
-      } 
-
       for (const node of this.three_d_graph.graphData().nodes as D3Node[]) {
-        if (nodes.has(node.id)) {
-          node.group = nodes.get(node.id).group;
+        if (node_index.has(node.id)) {
+          node.group = node_index.get(node.id).group;
         }
       }
 
       this.updateGeometries();
     }, 5);
 
-    // Unclip all
-    this.unclip();
+    const link_index = new Map<string, Set<string>>();
+    for (const link of this._actual_data.links) {
+      // @ts-ignore
+      if (!link_index.has(link.target)) {
+        // @ts-ignore
+        link_index.set(link.target, new Set([link.source]));
+      }
+      else {
+        // @ts-ignore
+        link_index.get(link.target).add(link.source);
+      }
+      // @ts-ignore
+      if (!link_index.has(link.source)) {
+        // @ts-ignore
+        link_index.set(link.source, new Set([link.target]));
+      }
+      else {
+        // @ts-ignore
+        link_index.get(link.source).add(link.target);
+      }
+    } 
 
     // Clip 
-    this.clip(data.nodes);
+    this.clip(node_index, link_index);
 
     // Actualise les arbres si les infos mitab sont disponibles
     if (FrontTopology.percentage_mitab >= 100) {
@@ -362,7 +376,14 @@ export class OmegaGraph {
     this.updateGeometries();
   }
 
+  @Listen('network-table.hover-on', { target: 'window' })
+  makeNodeTable(e: CustomEvent<string[]>) {
+    this.history_hover_nodes = new Set([e.detail[0]]);
+    this.updateGeometries();
+  }
+
   @Listen('omega-uniprot-card.hover-off', { target: 'window' })
+  @Listen('network-table.hover-off', { target: 'window' })
   removeNodeOverHistory() {
     this.history_hover_nodes = new Set;
     this.updateGeometries();
@@ -475,6 +496,43 @@ export class OmegaGraph {
       image_name = image_name.detail;
     }
 
+    return this.downloadGraphAs(image_name as string, "image");
+  }
+
+  @Listen('omega-download.download-as-json', { target: 'window' })
+  @Method()
+  async downloadGraphAsJSON(name: string | CustomEvent = "graph") {
+    if (name instanceof CustomEvent) {
+      name = name.detail;
+    }
+
+    return this.downloadGraphAs(name as string, "JSON");
+  }
+
+  @Listen('omega-download.download-as-file', { target: 'window' })
+  @Method()
+  async downloadGraphAsTab(name: string | CustomEvent = "graph") {
+    if (name instanceof CustomEvent) {
+      name = name.detail;
+    }
+
+    return this.downloadGraphAs(name as string, "tabular");
+  }
+
+  protected constructImageFromGraph() {
+    try {
+      const strMime = "image/jpeg", strDownloadMime = "image/octet-stream";;
+      const imgData = this.three_d_graph.renderer().domElement.toDataURL(strMime);
+
+      return imgData.replace(strMime, strDownloadMime);
+    } catch (e) {
+        console.log(e);
+        throw e;
+    }
+  }
+
+  @Method()
+  async downloadGraphAs(file_name: string, type = "image") {
     const saveFile = function (strData: string, filename: string) {
       const link = document.createElement('a');
       // Autodownload
@@ -483,17 +541,41 @@ export class OmegaGraph {
       link.href = strData;
       link.click();
       document.body.removeChild(link); //remove the link when done
+
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(strData);
+        } catch (e) { }
+      }, 2000);
     }
 
-    try {
-      const strMime = "image/jpeg", strDownloadMime = "image/octet-stream";;
-      const imgData = this.three_d_graph.renderer().domElement.toDataURL(strMime);
-
-      saveFile(imgData.replace(strMime, strDownloadMime), image_name + ".jpg");
-
-    } catch (e) {
-        console.log(e);
+    if (type === 'image') {
+      return saveFile(this.constructImageFromGraph(), file_name + ".jpg");
     }
+    else if (type === 'tabular') {
+      return saveFile(URL.createObjectURL(new Blob([await this.toTabular()], {type: "text/plain"})), file_name + ".tsv");
+    }
+    else if (type === "JSON") {
+      return saveFile(URL.createObjectURL(new Blob([await this.toJSON()], {type: "application/json"})), file_name + ".json");
+    }
+    else {
+      throw new Error("Unknwon type");
+    }
+  }
+
+  @Listen('network-table.select', { target: 'window' })
+  selectNetworkTable(e: CustomEvent<string[]>) {
+    this.highlightNode(e.detail[0]);
+  }
+
+  @Listen('network-table.unselect', { target: 'window' })
+  unselectNetworkTable(e: CustomEvent<string[]>) {
+    this.removeHighlighting(e.detail[0]);
+  }
+
+  @Listen('network-table.unselect-all', { target: 'window' })
+  unselectAllNetworkTable() {
+    this.resetHighlighting();
   }
 
   @Method()
@@ -501,7 +583,7 @@ export class OmegaGraph {
     const indexes = new Set(node_ids);
 
     const data = this.three_d_graph.graphData() as D3GraphBase;
-    const to_highlight = [];
+    const to_highlight: string[] = [];
 
     for (let i = 0; i < data.nodes.length && indexes.size; i++) {
       if (indexes.has(data.nodes[i].id)) {
@@ -515,26 +597,19 @@ export class OmegaGraph {
       }
     }
 
-    this.updateGeometries();
-    this.addSelectedNode.emit(to_highlight);
-  }
-
-  @Method()
-  async highlightNodeRegex(matcher: RegExp) {
-    const data = this.three_d_graph.graphData() as D3GraphBase;
-
-    for (let i = 0; i < data.nodes.length; i++) {
-      if (matcher.test(data.nodes[i].id)) {
-        this.highlighted_nodes.add(data.nodes[i]);
+    // Recherche si les noeuds sont présents dans actual_data (les élimine sinon)
+    const nodes_set = new Set<string>(this.actual_data.nodes.map(e => e.id));
+    const tmp = new Set<D3Node>();
+    for (const i of this.highlighted_nodes) {
+      if (nodes_set.has(i.id)) {
+        tmp.add(i);
       }
     }
 
-    this.updateGeometries();
-  }
+    this.highlighted_nodes = tmp;
 
-  @Method()
-  async highlightLink(source: string, target: string) {
-    // do not know what to do
+    this.updateGeometries();
+    this.addSelectedNode.emit(to_highlight);
   }
 
   @Method()
@@ -571,8 +646,13 @@ export class OmegaGraph {
 
 
   protected updateGeometries() {
+    if (!this.three_d_graph)
+      return;
+
     // Checking node color
     const data = this.three_d_graph.graphData() as D3GraphBase;
+
+    Animator.cancelAll();
 
     for (const node of data.nodes) {
       const node_material = node.__threeObj.material as MeshLambertMaterial;
@@ -583,6 +663,25 @@ export class OmegaGraph {
           clone.color = this.hovered_color;
           node.__threeObj.material = clone;
         }
+
+        Animator.addAnimation(node, (node, tween) => {
+          const s = { x: 1, y: 1, z: 1 };
+          const s2 = { x: 3, y: 3, z: 3 };
+
+          new tween.Tween(s)
+            .to(s2, 700)
+            .delay(0)
+            .easing(tween.Easing.Linear.None)
+            // @ts-ignore
+            .onUpdate( function() { node.__threeObj.scale.copy(s); } )
+            .chain(new tween.Tween(s2)
+              .to({ x: 1, y: 1, z: 1 }, 700)
+              .delay(0)
+              .easing(tween.Easing.Linear.None)
+              // @ts-ignore
+              .onUpdate( function() { node.__threeObj.scale.copy(s2); } )
+            ).start();
+        }, 1500);
       }
       else if (this.hovered_nodes.has(node)) {
         if (node_material.color !== this.hovered_color) {
@@ -612,6 +711,9 @@ export class OmegaGraph {
           node.__threeObj.material = clone;
         }
       }
+
+      // @ts-ignore
+      node.__threeObj.scale.copy({ x: 1, y: 1, z: 1 });
     }
 
     // Checking link color & size
@@ -744,8 +846,7 @@ export class OmegaGraph {
         acc.links.push({
           source: link.source.id,
           target: link.target.id,
-          homologyInfo: link.misc,
-          mitabInfos: FrontTopology.topo.psi.getLines(link.source.id, link.target.id)
+          homologyInfo: link.misc
         });
 
         return acc;
@@ -768,7 +869,7 @@ export class OmegaGraph {
         const id2 = node2.id;
         const best_identity = Math.max(...link.misc.lowQueryParam.map(v => v.idPct));
 
-        const lines = FrontTopology.topo.psi.getLines(id1, id2);
+        const lines: PSQData[] = [].concat(...link.misc.mitabCouples.map(e => e.map(d => d.data)));
 
         for (const line of lines) {
           acc += `${id1}\t${id2}\t${best_identity}\t` + line.toString();
@@ -785,7 +886,7 @@ type ExportedJSON = {
     [nodeId: string]: { val: number, group: number } 
   }, 
   links: { 
-    source: string, target: string, mitabInfos: any, homologyInfo: any 
+    source: string, target: string, homologyInfo: any 
   }[],
   misc: {
     trim_parameters: any,

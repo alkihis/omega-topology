@@ -6,8 +6,10 @@ import { JSXBase } from '@stencil/core/internal';
 import zip from 'python-zip';
 import { HoParameter } from 'omega-topology-fullstack';
 import { MitabParameter } from 'omega-topology-fullstack/build/HoParameter';
-import xolor from 'xolor';
+import * as d3 from 'd3';
 import { BASE_FIXES } from '../../utils/utils';
+import TaxonomyTermsCache from '../../utils/TaxonomyTermsCache';
+import OntologyTermsCache from '../../utils/OntologyTermsCache';
 
 @Component({
   tag: "omega-mitab-card",
@@ -25,6 +27,20 @@ export class OmegaMitabCard {
 
   @State()
   protected history: D3Link[] = [];
+
+  @State()
+  protected sortMethod: "descLowQ" | "ascLowQ" | "descHighQ" | "ascHighQ"  = "descLowQ";
+  
+  @State()
+  protected showInvalid = false;
+
+  @State()
+  protected taxonomy_cache: { [id: string]: string } = {};
+
+  protected ontology_cache: { [id: string]: string } = {};
+
+  @State()
+  protected must_update = false;
 
   @Event({
     eventName: 'omega-mitab-card.hover-on'
@@ -69,7 +85,7 @@ export class OmegaMitabCard {
       this.history = [];
 
     this.history_shown = false;
-    this.el.querySelector('.collapse').classList.remove('show', 'collapsing');
+    this.el.querySelector('.card-history').classList.remove('open');
     this.hoverOff.emit();
   }
 
@@ -86,6 +102,7 @@ export class OmegaMitabCard {
 
     this.data = undefined;
     this.in_preload = true;
+    this.must_update = true;
     this.show();
 
     this.data = e;
@@ -112,7 +129,9 @@ export class OmegaMitabCard {
   @Method()
   async hide() {
     this.el.querySelector('[omega-mitab-card-base]').classList.add('hidden');
+    this.closeHistory();
     window.removeEventListener('click', this.close_fn);
+    this.destroyTooltips();
   }
 
   protected addInHistory(p: D3Link) {
@@ -123,7 +142,55 @@ export class OmegaMitabCard {
     }
   }
 
-  protected generateHTML() {
+  protected initTooltips() {
+    setTimeout(() => {
+      // @ts-ignore
+      $(this.el.querySelectorAll('[data-toggle="tooltip"]')).tooltip();
+    }, 100);
+  }
+
+  protected destroyTooltips() {
+    try {
+      // @ts-ignore
+      $(this.el.querySelectorAll('[data-toggle="tooltip"]')).tooltip('dispose');
+    } catch (e) { }
+  }
+
+  async componentDidUpdate() {
+    if (this.must_update && this.data) {
+      this.must_update = false;
+      const pointer_to_tax = this.taxonomy_cache;
+
+      // Get all the needed taxids
+      const ids = new Set<string>();
+      const ids_mitab = new Set<string>();
+
+      for (const couples of this.data.misc.mitabCouples) {
+        for (const line of couples) {
+          ids_mitab.add(line.data.interactionDetectionMethod);
+          
+          for (const id of line.data.taxid) {
+            ids.add(id);
+          }
+        }
+      }
+
+      try {
+        const data = await TaxonomyTermsCache.bulkTerm([...ids]);
+        const mitab_data = await OntologyTermsCache.bulkTerm([...ids_mitab]);
+
+        if (this.taxonomy_cache === pointer_to_tax) {
+          this.ontology_cache = {...this.ontology_cache, ...mitab_data};
+          this.taxonomy_cache = {...this.taxonomy_cache, ...data};
+        }
+      } catch (e) { }
+    }
+
+    this.destroyTooltips();
+    this.initTooltips();
+  }
+
+  protected getLowHighQuery() : [D3Node, D3Node] {
     // Construction des données !
     const node1 = this.data.source;
     const node2 = this.data.target;
@@ -136,74 +203,173 @@ export class OmegaMitabCard {
     else {
       lowQuery = node2, highQuery = node1;
     }
+    
+    return [lowQuery, highQuery];
+  }
 
-    console.log(lowQuery, highQuery, this.data.misc);
+  // Génération de l'HTML du body
+  protected generateHTML() {
+    // Construction des données !
+    const omega_trim_element = document.querySelector('omega-trim');
+    const current_max_similarity = omega_trim_element ? omega_trim_element.similarity : BASE_FIXES.similarity;
+
+    const [lowQuery, highQuery] = this.getLowHighQuery();
 
     // tr generation
-    const trs: JSXBase.HTMLAttributes<HTMLTableRowElement>[] = [];
+    type TR_Array_Element = [JSXBase.HTMLAttributes<HTMLTableRowElement>, [number, number]];
+    const trs: TR_Array_Element[] = [];
+    const invalid_trs: TR_Array_Element[] = [];
 
-    const gradient_red = xolor('red');
+    // @ts-ignore
+    const gradient = d3.scaleLinear().domain([Number(current_max_similarity), 100]).range(["red", "green"]);
 
     // for each mitab line:
     // [idLow, organism] ; [idHigh, organism] ; [interDetMethod]
-    for (
-      const [lowQ, highQ, couples] of 
-      // @ts-ignore
-      zip(this.data.misc.lowQueryParam, this.data.misc.highQueryParam, this.data.misc.mitabCouples) as IterableIterator<[HoParameter, HoParameter, MitabParameter[]]>
-    ) {
+    for (const [lowQ, highQ, couples] of this.data.misc.full_iterator()) {
       // Recherche de la meilleure similarité pour low
       // Conversion de base pour la similarité
-      const color_sim_low =  ((lowQ.simPct - Number(BASE_FIXES.similarity)) / (100 - Number(BASE_FIXES.similarity)));
-      const color: string = gradient_red.gradient('green', color_sim_low);
 
-      const color_sim_high =  ((highQ.simPct - Number(BASE_FIXES.similarity)) / (100 - Number(BASE_FIXES.similarity)));
-      const color2: string = gradient_red.gradient('green', color_sim_high);
+      const color: string = gradient(Number(lowQ.simPct));
+      const color2: string = gradient(Number(highQ.simPct));
+
+      if (!couples.length) {
+        continue;
+      }
+
+      if ((!lowQ.valid || !highQ.valid) && !this.showInvalid) {
+        // Si c'est invalide et qu'on ne les veut pas
+        continue;
+      }
+
+      // Getting line 1
+      const line = couples[0];
+      // On construit la ligne pour chaque ligne mitab
+      const first_is_first = line.ids[0] === lowQ.template;
+
+      const tax_ids = line.taxid;
+      const [taxid_1, taxid_2] = first_is_first ? tax_ids : tax_ids.reverse();
+
+      const ids_of_interactors = line.ids;
+      const [id_i_1, id_i_2] = first_is_first ? ids_of_interactors : ids_of_interactors.reverse();
       
+      const detection_methods = new Set(couples.map(line => line.interactionDetectionMethod));
 
-      for (const line of couples) {
-        const first_is_first = line.data.ids[0] === lowQuery.id; console.log(line.data.ids[0], lowQuery.id);
+      const tax_1 = (taxid_1 in this.taxonomy_cache ? this.taxonomy_cache[taxid_1] : "taxid:" + taxid_1);
+      const tax_2 = (taxid_2 in this.taxonomy_cache ? this.taxonomy_cache[taxid_2] : "taxid:" + taxid_2);
 
-        const species = line.data.full_species;
-        const [specie_1, specie_2] = first_is_first ? species : species.reverse();
+      (!lowQ.valid || !highQ.valid ? invalid_trs : trs).push(
+        [
+          <tr class={!lowQ.valid || !highQ.valid ? "table-secondary disabled" : ""} data-lowQSim={lowQ.simPct} data-highQSim={highQ.simPct}>
+            <td style={{'background-color': color.replace(')', ",0.5)")}}>
+              <span><a class="link-no-color underline" href={'https://www.uniprot.org/uniprot/' + id_i_1} target="_blank">{id_i_1}</a> </span>
+              <p data-toggle="tooltip" data-placement="top" title={tax_1} class="no-margin">
+                ({tax_1.length > 12 ? tax_1.slice(0, 12) + "..." : tax_1})
+              </p>
 
-        const tax_ids = line.data.taxid;
-        const [taxid_1, taxid_2] = first_is_first ? tax_ids : tax_ids.reverse();
-
-        const ids_of_interactors = line.data.ids;
-        const [id_i_1, id_i_2] = first_is_first ? ids_of_interactors : ids_of_interactors.reverse();
-
-        const interaction_method = line.data.interactionDetectionMethod;
-
-        trs.push(
-          <tr>
-            <td style={{'background-color': color}}>
-              {id_i_1} ({specie_1} / taxid:{taxid_1})
+              <div class="float-right tiny-text">{lowQ.simPct.toFixed(2)}% similarity</div>
             </td>
-            <td style={{'background-color': color2}}>
-              {id_i_2} ({specie_2} / taxid:{taxid_2})
+            <td style={{'background-color': color2.replace(')', ",0.5)")}}>
+              <span><a class="link-no-color underline" href={'https://www.uniprot.org/uniprot/' + id_i_2} target="_blank">{id_i_2}</a> </span>
+              <p data-toggle="tooltip" data-placement="top" title={tax_2} class="no-margin">
+                ({tax_2.length > 12 ? tax_2.slice(0, 12) + "..." : tax_2})
+              </p> 
+
+              <div class="float-right tiny-text">{highQ.simPct.toFixed(2)}% similarity</div>
             </td>
             <td>
-              {interaction_method}
+              { [...detection_methods]
+                  .map(interaction_method => interaction_method in this.ontology_cache ? this.ontology_cache[interaction_method] : interaction_method)
+                  .join(', ')
+              }
             </td>
-          </tr>
-        );
-      }
+          </tr>, 
+          [ lowQ.simPct, highQ.simPct ]
+        ]
+      );
     }
+
+    const sort_function = (trA: TR_Array_Element, trB: TR_Array_Element) => {
+      if (this.sortMethod.includes("LowQ")) {
+        const lowqA = trA[1][0];
+        const lowqB = trB[1][0];
+
+        if (this.sortMethod.includes("desc")) {
+          return lowqB - lowqA;
+        }
+        else {
+          return lowqA - lowqB;
+        }
+      }
+      else {
+        const highqA = trA[1][1];
+        const highqB = trB[1][1];
+        
+        if (this.sortMethod.includes("desc")) {
+          return highqB - highqA;
+        }
+        else {
+          return highqA - highqB; 
+        }
+      }
+    };
+
+    // Sorting tr according to sort mode
+    const sorted_trs = trs.sort(sort_function);
+    const sorted_invalid_trs = invalid_trs.sort(sort_function);
     
     return (
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th scope="col">{lowQuery.id}</th>
-            <th scope="col">{highQuery.id}</th>
-            <th scope="col">Detection method</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trs}
-        </tbody>
-      </table>
+      <div>
+        <div class="container" style={{'margin-bottom': '20px'}}>
+          <div class="row">
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="evidencescheckbox" onChange={e => this.registerCheckboxInvalid(e)} checked={this.showInvalid}></input>
+                <label class="form-check-label" htmlFor="evidencescheckbox">
+                  Show discarded evidences
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th scope="col" class="text-center" colSpan={2}>Homologs of</th>
+              <th scope="col"></th>
+            </tr>
+            <tr>
+              <th scope="col" onClick={() => this.makeSort(true)}>
+                <a href={'https://www.uniprot.org/uniprot/' + lowQuery.id} target="_blank">{lowQuery.id}</a>
+                <i class={ "text-" + (this.sortMethod.includes('Low') ? "primary" : "secondary") + " material-icons pointer-no-select float-right" }>swap_vert</i>
+              </th>
+              <th scope="col" onClick={() => this.makeSort(false)}>
+                <a href={'https://www.uniprot.org/uniprot/' + highQuery.id} target="_blank">{highQuery.id}</a>
+                <i class={ "text-" + (this.sortMethod.includes('High') ? "primary" : "secondary") + " material-icons pointer-no-select float-right" }>swap_vert</i>
+              </th>
+              <th scope="col">Detection method</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted_trs.map(e => e[0])}
+            {sorted_invalid_trs.map(e => e[0])}
+          </tbody>
+        </table>
+      </div>
     );
+  }
+
+  protected registerCheckboxInvalid(e: Event) {
+    this.showInvalid = (e.currentTarget as HTMLInputElement).checked;
+  }
+
+  protected makeSort(is_low_q: boolean) {
+    if (is_low_q) {
+      this.sortMethod = this.sortMethod.includes('desc') ? "ascLowQ" : "descLowQ";
+    }
+    else {
+      this.sortMethod = this.sortMethod.includes('desc') ? "ascHighQ" : "descHighQ";
+    }
   }
 
   protected noLoadMessage() {
@@ -229,31 +395,32 @@ export class OmegaMitabCard {
   }
 
   protected toggleHistory() {
-    // @ts-ignore
-    $(this.el.querySelector('.collapse')).collapse('toggle');
     this.history_shown = !this.history_shown;
     this.hoverOff.emit();
   }
 
   protected historyList() {
-    if (this.history.length < 2) {
-      return <ul class="list-group custom-list"><li class="list-group-item">History is empty.</li></ul>;
-    }
-
     const elements = [];
 
-    for (let i = 0; i < this.history.length - 1; i++) {
-      const prot = this.history[i];
-      elements.push(<li class="list-group-item pointer-no-select" 
-        onMouseOver={e => this.hoverOn.emit(prot)} 
+    for (const prot of this.history) {
+      elements.push(<li class="list-group-item pointer-no-select"
+        onMouseOver={() => this.hoverOn.emit(prot)} 
         onMouseOut={() => this.hoverOff.emit()} 
         onClick={() => this.loadLinkData(prot)}
       >{prot.source.id + " - " + prot.target.id}</li>);
     }
 
     elements.reverse();
+    
+    if (elements.length)
+      elements[0].class = "list-group-item pointer-no-select font-weight-bold"; 
 
-    return <ul class="list-group custom-list">{elements}</ul>
+    return (
+      <ul class="list-group custom-list">
+        <li class="list-group-item font-weight-bold history-title">History</li>
+        {elements}
+      </ul>
+    );
   }
 
   /**
@@ -263,15 +430,9 @@ export class OmegaMitabCard {
     return (
       <div omega-mitab-card-base class="card hidden">
         <h5 class="card-header">
-          {this.data ? this.data.source.id + " - " + this.data.target.id : (this.in_preload ? "Loading..." : "Protein data card")}
+          {this.data ? `Homology evidences of ${this.data.source.id}-${this.data.target.id} interactions` : (this.in_preload ? "Loading..." : "Protein data card")}
           <i class={"material-icons float-right pointer-no-select" + (this.history_shown ? " text-primary" : "")} onClick={() => this.toggleHistory()}>history</i>
         </h5>
-
-        <div style={{position: 'relative'}}>
-          <div class="collapse" style={{position: 'absolute', width: '100%'}}>
-            {this.historyList()}
-          </div>
-        </div>
 
         <div class="card-body">
           {
@@ -290,6 +451,12 @@ export class OmegaMitabCard {
               </div>
             </div>
           }
+        </div>
+
+        <div class="card-history-container">
+          <div class={"card-history" + (this.history_shown ? " open" : "")}>
+            {this.historyList()}
+          </div>
         </div>
       </div>
     );

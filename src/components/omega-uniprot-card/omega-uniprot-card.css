@@ -19,10 +19,61 @@
 }
 
 [omega-uniprot-card-base] .custom-list li.list-group-item {
-    border-radius: 0 !important;
     transition: background-color .2s;
 }
+
+[omega-uniprot-card-base] .custom-list li.list-group-item:last-child {
+    border-bottom-right-radius: 0 !important;
+}
+
+[omega-uniprot-card-base] .custom-list li.list-group-item:first-child {
+    border-top-right-radius: 0 !important;
+}
+
 
 [omega-uniprot-card-base] .custom-list > li.pointer-no-select:hover {
     background-color: rgb(230, 230, 230);
 }
+
+[omega-uniprot-card-base] .card-history-container {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+}
+
+[omega-uniprot-card-base] .card-history {
+    position: absolute;
+    max-width: 300px;
+    width: 100%;
+    max-height: 20vh;
+    transition: transform ease-in-out .3s, height ease-in-out .5s;
+}
+
+[omega-uniprot-card-base] .card-history.open {
+    transform: translateX(-100%);
+    max-height: none;
+}
+
+[omega-uniprot-card-base] .card-header {
+    background-color: rgb(241, 241, 241);
+    z-index: 1002;
+}
+
+[omega-uniprot-card-base] .card-body {
+    background-color: white;
+    z-index: 1002;
+}
+
+[omega-uniprot-card-base] .copy-button {
+    position: absolute;
+    right: 0;
+    background-color: rgb(235, 235, 235);
+    border-radius: 5px;
+    padding: 5px 5px 0 5px;
+    border: #c5c1c1 1px solid;
+}
+
+[omega-uniprot-card-base] .copy-button i {
+    font-size: 110% !important;
+}
+

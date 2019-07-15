@@ -19,6 +19,9 @@ import {
   UniprotProtein,
 } from 'omega-topology-fullstack/build/UniprotContainer';
 import {
+  PSQData,
+} from 'omega-topology-fullstack';
+import {
   SubNode,
   TreeLike,
 } from '@mmsb/selectionnable-tree';
@@ -26,12 +29,13 @@ import {
 export namespace Components {
   interface OmegaDownload {}
   interface OmegaGraph {
+    'downloadGraphAs': (file_name: string, type?: string) => Promise<void>;
     'downloadGraphAsImage': (image_name?: string | CustomEvent<any>) => Promise<void>;
+    'downloadGraphAsJSON': (name?: string | CustomEvent<any>) => Promise<void>;
+    'downloadGraphAsTab': (name?: string | CustomEvent<any>) => Promise<void>;
     'getLinksOf': (id: string) => Promise<any>;
     'getNode': (id: string) => Promise<any>;
-    'highlightLink': (source: string, target: string) => Promise<void>;
     'highlightNode': (...node_ids: string[]) => Promise<void>;
-    'highlightNodeRegex': (matcher: RegExp) => Promise<void>;
     /**
     * Construction d'un graphe, en utilisant ForceGraph3D.  Capable de recevoir un *CustomEvent* doté une propriété *detail* contenant un objet, possédant une propriété *graph_base* de type `D3GraphBase` (type `MakeGraphEvent`).  Il est possible de directement passer un object implémentant `D3GraphBase` à cette fonction, qui construira le graphe en conséquence.
     */
@@ -78,6 +82,7 @@ export namespace Components {
       similarity?: string,
       e_value?: string
     };
+    'similarity': string;
   }
   interface OmegaUniprotCard {
     'data': UniprotProtein;
@@ -174,6 +179,7 @@ declare namespace LocalJSX {
   interface OmegaDownload extends JSXBase.HTMLAttributes<HTMLOmegaDownloadElement> {
     'onOmega-download.download'?: (event: CustomEvent<string>) => void;
     'onOmega-download.download-as-file'?: (event: CustomEvent<string>) => void;
+    'onOmega-download.download-as-json'?: (event: CustomEvent<string>) => void;
   }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
     'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
@@ -219,6 +225,7 @@ declare namespace LocalJSX {
       e_value?: string
     };
     'onTrim-property-change'?: (event: CustomEvent<TrimProperties>) => void;
+    'similarity'?: string;
   }
   interface OmegaUniprotCard extends JSXBase.HTMLAttributes<HTMLOmegaUniprotCardElement> {
     'data'?: UniprotProtein;

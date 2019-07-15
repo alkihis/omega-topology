@@ -44,8 +44,28 @@ body > * {
     pointer-events: initial;
 }
 
+.history-title {
+    background-color: rgb(235, 235, 235);
+}
+
 .force-hide {
     display: none !important;
+}
+
+.tiny-text {
+    font-size: .7em;
+}
+
+.no-margin {
+    margin: 0;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.link-no-color {
+    color: inherit;
 }
 
 .pointer-no-select {

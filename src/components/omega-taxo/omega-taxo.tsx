@@ -106,7 +106,7 @@ export class OmegaTaxo {
   }
 
   protected async getTaxonomy(list: string[]): Promise<{ tree: TreeAsAPI }> {
-    return fetch(TAXONOMY_URL + '/bulk', {
+    return fetch(TAXONOMY_URL + '/tree', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taxids: list })

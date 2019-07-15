@@ -16,7 +16,7 @@ export class OmegaTrim {
 
   @State() identity: string;
   @State() coverage: string;
-  @State() similarity: string;
+  @Prop() similarity: string;
   @State() e_value: string;
 
   @State() fixed_by_user = false;
