@@ -92,6 +92,14 @@ export class OmegaTaxo {
     this.refreshSelected(e.detail);
   }
 
+  @Listen('omega-graph.complete-reset', { target: 'window' })
+  resetTree() {
+    this.mitab_loaded = false;
+    this.mitab_percent = 0;
+    this.mitab_socket_error = false;
+    this.tree.data = [];
+  }
+
   @Listen('omega-graph.rebuild_taxo', {
     target: 'window'
   })

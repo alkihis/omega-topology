@@ -1,4 +1,4 @@
-import { Component, h, Prop, Listen, Element, Method, State, Event, EventEmitter } from '@stencil/core';
+import { Component, h, Prop, Listen, Element, Method, State, Event, EventEmitter, Watch } from '@stencil/core';
 import { TrimProperties } from '../../utils/types';
 import { BASE_COVERAGE, BASE_IDENTITY, BASE_SIMILARITY, BASE_E_VALUE, BASE_FIXES } from '../../utils/utils';
 
@@ -14,10 +14,10 @@ export class OmegaTrim {
 
   public static readonly tag = "omega-trim";
 
-  @State() identity: string;
-  @State() coverage: string;
+  @Prop() identity: string;
+  @Prop() coverage: string;
   @Prop() similarity: string;
-  @State() e_value: string;
+  @Prop() e_value: string;
 
   @State() fixed_by_user = false;
 
@@ -51,6 +51,13 @@ export class OmegaTrim {
     this.fixed_by_user = true;
   }
 
+  @Watch('e_value')
+  set_e_value(v: string) {
+    if (Number(v) < 1 && Number(v) > 0) {
+      // Si c'est une décimale
+      this.e_value = Number(v).toExponential().split('-')[1];
+    }
+  } 
 
   /**
    * Initialisation du composant.
@@ -60,12 +67,6 @@ export class OmegaTrim {
     this.coverage = this.fix_at.coverage ? this.fix_at.coverage : "0";
     this.similarity = this.fix_at.similarity ? this.fix_at.similarity : "0";
     this.e_value = this.fix_at.e_value ? this.fix_at.e_value : "1";
-  }
-
-  handleSubmit(event: Event) {
-    event.preventDefault()
-    console.log(this.identity);
-    // send data to our backend
   }
 
   handleIdentity(event: Event) {

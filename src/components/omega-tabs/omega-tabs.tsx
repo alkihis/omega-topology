@@ -66,7 +66,7 @@ export class OmegaTrim {
     this.el.querySelector('[tabs-container] [hide-container] i').innerHTML = "arrow_left";
   }
 
-  @Listen('prune-select-nodes')
+  @Listen('omega-prune.selection')
   protected hideOrShow() {
     const i = this.el.querySelector('[tabs-container] [hide-container] i') as HTMLElement;
 
@@ -81,6 +81,13 @@ export class OmegaTrim {
       el.classList.remove('last-active', 'hide');
       i.innerText = "arrow_left";
     }
+  }
+
+  @Listen('omega-graph.complete-reset', { target: 'window' })
+  resetTabs() {
+    this.hideAll();
+    this.removeActive();
+    this.el.querySelector('go-chart').data = undefined;
   }
 
   get last_active() {

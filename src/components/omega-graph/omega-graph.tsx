@@ -1,5 +1,5 @@
 import { Component, h, Prop, Listen, Element, Method, Event, EventEmitter } from '@stencil/core';
-import FrontTopology from '../../utils/FrontTopology';
+import FrontTopology, { TrimOptions } from '../../utils/FrontTopology';
 
 import ForceGraph3D from '3d-force-graph';
 import { D3GraphBase, D3Node, D3Link, MakeGraphEvent, TrimProperties, PruneAddProperty, PruneDeleteProperty } from '../../utils/types';
@@ -56,6 +56,10 @@ export class OmegaGraph {
   @Event({
     eventName: "omega-graph.load-link"
   }) loadLinkCard: EventEmitter<D3Link>;
+
+  @Event({
+    eventName: "omega-graph.complete-reset"
+  }) resetAllData: EventEmitter<void>;
 
   public static readonly tag = "omega-graph";
 
@@ -444,12 +448,7 @@ export class OmegaGraph {
   @Listen('omega-graph-make-graph')
   @Method()
   async make3dGraph(data: MakeGraphEvent | D3GraphBase) {
-    this.resetSelectedNodes.emit();
-    this.graphGenericRebuild.emit();
-    this.highlighted_links = new Set;
-    this.highlighted_nodes = new Set;
-    this.history_hover_nodes = new Set;
-    this.history_hover_links = new Set;
+    this.destroyCurrentGraph(false);
 
     const graph_base = data instanceof CustomEvent ? (event as MakeGraphEvent).detail.graph_base : data;
 
@@ -464,7 +463,7 @@ export class OmegaGraph {
       const element = this.el.querySelector(`div[graph-element]`);
       element.innerHTML = "";
 
-      this.three_d_graph = ForceGraph3D({ rendererConfig: { antialias: true, alpha: true, preserveDrawingBuffer: true } }) //.backgroundColor('#fff').linkWidth(2).linkColor("#000").linkOpacity(0.5)
+      this.three_d_graph = ForceGraph3D({ rendererConfig: { antialias: true, alpha: true, preserveDrawingBuffer: true } })
         (element)
         .nodeLabel('id')
         // .forceEngine('ngraph') // Fait planter cameraPosition
@@ -520,6 +519,29 @@ export class OmegaGraph {
 
       this.actual_data = graph_base;
     }
+  }
+
+  protected destroyCurrentGraph(empty_html = false) {
+    this.resetSelectedNodes.emit();
+    this.graphGenericRebuild.emit();
+    this.highlighted_links = new Set;
+    this.highlighted_nodes = new Set;
+    this.history_hover_nodes = new Set;
+    this.history_hover_links = new Set;
+
+    if (empty_html) {
+      const element = this.el.querySelector(`div[graph-element]`);
+      element.innerHTML = "";
+      this.three_d_graph = undefined;
+      this._actual_data = undefined;
+    }
+  }
+
+  @Listen('omega-import.import', { target: 'window' })
+  loadExternalGraph() {
+    this.destroyCurrentGraph(true);
+    FrontTopology.resetInstance();
+    this.resetAllData.emit();
   }
 
   @Listen('omega-download.download', { target: 'window' })
@@ -879,7 +901,8 @@ export class OmegaGraph {
             links: [], 
             misc: { 
               trim_parameters: FrontTopology.current_trim_parameters,
-              prune_parameters: FrontTopology.current_prune_parameters
+              prune_parameters: FrontTopology.current_prune_parameters,
+              specie: this.specie
             } 
           };
         }
@@ -933,7 +956,8 @@ type ExportedJSON = {
     source: string, target: string, homologyInfo: any 
   }[],
   misc: {
-    trim_parameters: any,
-    prune_parameters: [string[], number]
+    trim_parameters: TrimOptions,
+    prune_parameters: [string[], number],
+    specie: string
   } 
-} | void;
+};

@@ -7,10 +7,11 @@
 
 ## Events
 
-| Event                    | Description | Type                |
-| ------------------------ | ----------- | ------------------- |
-| `prune-end-select-nodes` |             | `CustomEvent<void>` |
-| `prune-select-nodes`     |             | `CustomEvent<void>` |
+| Event                       | Description | Type                |
+| --------------------------- | ----------- | ------------------- |
+| `omega-prune.end-selection` |             | `CustomEvent<void>` |
+| `omega-prune.selection`     |             | `CustomEvent<void>` |
+| `omega-prune.unselect-all`  |             | `CustomEvent<void>` |
 
 
 ## Dependencies

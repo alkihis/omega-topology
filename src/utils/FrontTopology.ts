@@ -7,6 +7,7 @@ import { D3GraphBase } from './types';
 const FrontTopology = new class FrontTopology {
   protected topology: OmegaTopology;
   protected init_prom: Promise<OmegaTopology> = undefined;
+  public full_ready_promise: Promise<any> = undefined;
   protected mitab_promise: Promise<OmegaTopology> = undefined;
 
   protected mitab_total: number;
@@ -20,6 +21,10 @@ const FrontTopology = new class FrontTopology {
   protected current_specie: string;
   
   constructor() {
+    this.configureSocket();
+  }
+
+  protected configureSocket() {
     this.socket = io(SERVER_WEBSOCKET_URL, { autoConnect: false, reconnectionAttempts: 20 });
   }
 
@@ -41,7 +46,7 @@ const FrontTopology = new class FrontTopology {
         return this.topology;
       });
 
-    this.init_prom.then(async () => {
+    const after_init = this.init_prom.then(async () => {
       Timer.default_format = "s";
       const t = new Timer;
       console.log("Downloading GO Terms...");
@@ -77,9 +82,11 @@ const FrontTopology = new class FrontTopology {
     });
 
     if (auto_mitab_dl) {
-      return this.downloadMitabLines();
+      const mitab_prom = this.downloadMitabLines();
+      return this.full_ready_promise = Promise.all([after_init, mitab_prom]);
     }
     else {
+      this.full_ready_promise = after_init;
       return this.init_prom;
     }
   }
@@ -252,6 +259,20 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
+  resetInstance() {
+    this.topology = undefined;
+    this.init_prom = undefined;
+    this.mitab_promise = undefined;
+    this.full_ready_promise = undefined;
+    this.mitab_total = undefined;
+    this.mitab_downloaded = 0;
+    this.mitab_complete = false;
+    this.configureSocket();
+    this.socket_promise = undefined;
+    this.socket_io_fail = false;
+    this.current_specie = undefined;
+  }
+
   ///// CACHE
   protected _trim_cache: TrimOptions = {};
   protected _prune_cache: [string[], number];
@@ -293,7 +314,10 @@ const FrontTopology = new class FrontTopology {
       identity, similarity, coverage, experimental_detection_method, taxons, e_value
     };
 
-    if (this._prune_cache) {
+    if (options.custom_prune) {
+      this.prune(...options.custom_prune); return;
+    }
+    else if (this._prune_cache) {
       console.log("Re-pruning")
       this.prune(...this._prune_cache); return;
     }
@@ -360,5 +384,6 @@ export interface TrimOptions {
   taxons?: string[],
   e_value?: number,
   definitive?: boolean,
-  keep_old?: boolean
+  keep_old?: boolean,
+  custom_prune?: [string[], number]
 }

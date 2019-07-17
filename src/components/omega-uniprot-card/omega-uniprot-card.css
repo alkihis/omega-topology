@@ -1,9 +1,9 @@
 [omega-uniprot-card-base] {
-    position: absolute !important;
+    position: fixed !important;
     z-index: 1001;
     right: 15px;
     top: 5vh;
-    min-height: 20vh;
+    min-height: 25vh;
     max-height: 90vh;
     max-width: 40vw;
     width: 500px;

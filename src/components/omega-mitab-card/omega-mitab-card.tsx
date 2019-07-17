@@ -223,6 +223,14 @@ export class OmegaMitabCard {
     // @ts-ignore
     const gradient = d3.scaleLinear().domain([Number(current_max_similarity), 100]).range(["red", "green"]);
 
+    const gradient_text = `linear-gradient(to right, ${gradient(0).replace(')', ",0.5)")}, ${gradient(100).replace(')', ",0.5)")})`;
+    const gradient_block = <div class="float-right" style={{position: 'relative', width: '95%'}}>
+      <div style={{background: gradient_text, width: '100%', height: '4px', 'border-radius': '2px', position: 'absolute'}}></div>
+      <div class="font-weight-bold" style={{position: 'absolute', top: '3px'}}>{current_max_similarity}%</div>
+      <div class="font-weight-bold" style={{position: 'absolute', right: '0', top: '3px'}}>100%</div>
+      <div class="text-center font-italic" style={{'margin-top': '3px'}}>Similarity</div>
+    </div>;
+
     // for each mitab line:
     // [idLow, organism] ; [idHigh, organism] ; [interDetMethod]
     for (const [lowQ, highQ, couples] of this.data.misc.full_iterator()) {
@@ -322,12 +330,15 @@ export class OmegaMitabCard {
         <div class="container" style={{'margin-bottom': '20px'}}>
           <div class="row">
             <div class="col">
-              <div class="form-check">
+              <div class="form-check float-left">
                 <input class="form-check-input" type="checkbox" id="evidencescheckbox" onChange={e => this.registerCheckboxInvalid(e)} checked={this.showInvalid}></input>
                 <label class="form-check-label" htmlFor="evidencescheckbox">
                   Show discarded evidences
                 </label>
               </div>
+            </div>
+            <div class="col">
+              {gradient_block}
             </div>
           </div>
         </div>
@@ -427,7 +438,7 @@ export class OmegaMitabCard {
     return (
       <div omega-mitab-card-base class="card hidden">
         <h5 class="card-header">
-          {this.data ? `Homology evidences of ${this.data.source.id}-${this.data.target.id} interactions` : (this.in_preload ? "Loading..." : "Protein data card")}
+          {this.data ? `Interaction of ${this.data.source.id}-${this.data.target.id}: Homology support` : (this.in_preload ? "Loading..." : "Protein data card")}
           <i class={"material-icons float-right pointer-no-select" + (this.history_shown ? " text-primary" : "")} onClick={() => this.toggleHistory()}>history</i>
         </h5>
 

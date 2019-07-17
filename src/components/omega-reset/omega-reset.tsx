@@ -5,7 +5,7 @@ import { Component, h, Element, Event, EventEmitter } from '@stencil/core';
   styleUrl: 'omega-reset.css',
   shadow: false
 })
-export class OmegaTrim {
+export class OmegaReset {
   @Element() el: HTMLElement;
 
   public static readonly tag = "omega-reset";

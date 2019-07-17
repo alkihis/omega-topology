@@ -7,9 +7,9 @@
 
 ## Events
 
-| Event                 | Description | Type                |
-| --------------------- | ----------- | ------------------- |
-| `omega-reheat.reheat` |             | `CustomEvent<void>` |
+| Event               | Description | Type                |
+| ------------------- | ----------- | ------------------- |
+| `omega-reset.reset` |             | `CustomEvent<void>` |
 
 
 ----------------------------------------------

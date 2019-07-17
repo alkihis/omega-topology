@@ -55,6 +55,7 @@ export namespace Components {
     'toJSON': () => Promise<string>;
     'toTabular': () => Promise<string>;
   }
+  interface OmegaImport {}
   interface OmegaMitabCard {
     'data': D3Link;
     'hide': () => Promise<void>;
@@ -78,12 +79,15 @@ export namespace Components {
     'unsetData': () => Promise<void>;
   }
   interface OmegaTrim {
+    'coverage': string;
+    'e_value': string;
     'fix_at'?: {
       identity?: string,
       coverage?: string,
       similarity?: string,
       e_value?: string
     };
+    'identity': string;
     'similarity': string;
   }
   interface OmegaUniprotCard {
@@ -108,6 +112,12 @@ declare global {
   var HTMLOmegaGraphElement: {
     prototype: HTMLOmegaGraphElement;
     new (): HTMLOmegaGraphElement;
+  };
+
+  interface HTMLOmegaImportElement extends Components.OmegaImport, HTMLStencilElement {}
+  var HTMLOmegaImportElement: {
+    prototype: HTMLOmegaImportElement;
+    new (): HTMLOmegaImportElement;
   };
 
   interface HTMLOmegaMitabCardElement extends Components.OmegaMitabCard, HTMLStencilElement {}
@@ -166,6 +176,7 @@ declare global {
   interface HTMLElementTagNameMap {
     'omega-download': HTMLOmegaDownloadElement;
     'omega-graph': HTMLOmegaGraphElement;
+    'omega-import': HTMLOmegaImportElement;
     'omega-mitab-card': HTMLOmegaMitabCardElement;
     'omega-onto': HTMLOmegaOntoElement;
     'omega-prune': HTMLOmegaPruneElement;
@@ -185,6 +196,7 @@ declare namespace LocalJSX {
     'onOmega-download.download-as-json'?: (event: CustomEvent<string>) => void;
   }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
+    'onOmega-graph.complete-reset'?: (event: CustomEvent<void>) => void;
     'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
     'onOmega-graph.load-protein'?: (event: CustomEvent<Promise<UniprotProtein>>) => void;
     'onOmega-graph.prune-add'?: (event: CustomEvent<PruneAddProperty>) => void;
@@ -197,6 +209,9 @@ declare namespace LocalJSX {
     * Espèce modélisée par le graphe
     */
     'specie'?: string;
+  }
+  interface OmegaImport extends JSXBase.HTMLAttributes<HTMLOmegaImportElement> {
+    'onOmega-import.import'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaMitabCard extends JSXBase.HTMLAttributes<HTMLOmegaMitabCardElement> {
     'data'?: D3Link;
@@ -222,12 +237,15 @@ declare namespace LocalJSX {
     'onOmega-taxo.trim'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaTrim extends JSXBase.HTMLAttributes<HTMLOmegaTrimElement> {
+    'coverage'?: string;
+    'e_value'?: string;
     'fix_at'?: {
       identity?: string,
       coverage?: string,
       similarity?: string,
       e_value?: string
     };
+    'identity'?: string;
     'onTrim-property-change'?: (event: CustomEvent<TrimProperties>) => void;
     'similarity'?: string;
   }
@@ -241,6 +259,7 @@ declare namespace LocalJSX {
   interface IntrinsicElements {
     'omega-download': OmegaDownload;
     'omega-graph': OmegaGraph;
+    'omega-import': OmegaImport;
     'omega-mitab-card': OmegaMitabCard;
     'omega-onto': OmegaOnto;
     'omega-prune': OmegaPrune;

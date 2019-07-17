@@ -119,8 +119,8 @@ export class OmegaTrim {
 
             <div select-element>
               <button type="button" class="btn btn-primary btn-block" style={{ 'margin-right': '5px' }} onClick={this.in_selection ? () => this.endSelection() : () => this.beginSelection()}>{this.in_selection ? "Finish selection" : "Select nodes"}</button>
-              <button type="button" class={this.selected.length ? "btn btn-dark btn-block" : "hide"} onClick={() => this.emitPrune()}>Cancel prune</button>
               <button type="button" class={this.selected.length ? "btn btn-warning btn-block" : "btn btn-danger btn-block"} onClick={() => this.emitPrune()}>{this.selected.length ? "Prune" : "Cancel prune"}</button>
+              {this.selected.length ? <button type="button" class="btn btn-dark btn-block" onClick={() => this.resetSelection()}>Unselect all</button> : ""}
 
               <hr></hr>
 

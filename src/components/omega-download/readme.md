@@ -7,9 +7,11 @@
 
 ## Events
 
-| Event                 | Description | Type                |
-| --------------------- | ----------- | ------------------- |
-| `omega-reheat.reheat` |             | `CustomEvent<void>` |
+| Event                             | Description | Type                  |
+| --------------------------------- | ----------- | --------------------- |
+| `omega-download.download`         |             | `CustomEvent<string>` |
+| `omega-download.download-as-file` |             | `CustomEvent<string>` |
+| `omega-download.download-as-json` |             | `CustomEvent<string>` |
 
 
 ----------------------------------------------

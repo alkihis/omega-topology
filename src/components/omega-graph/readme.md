@@ -14,18 +14,52 @@
 
 ## Events
 
-| Event                      | Description | Type                              |
-| -------------------------- | ----------- | --------------------------------- |
-| `omega-graph.rebuild_onto` |             | `CustomEvent<string[]>`           |
-| `omega-graph.rebuild_taxo` |             | `CustomEvent<string[]>`           |
-| `prune-add-node`           |             | `CustomEvent<string \| string[]>` |
-| `prune-delete-node`        |             | `CustomEvent<string>`             |
-| `prune-reset-nodes`        |             | `CustomEvent<void>`               |
+| Event                        | Description | Type                                   |
+| ---------------------------- | ----------- | -------------------------------------- |
+| `omega-graph.complete-reset` |             | `CustomEvent<void>`                    |
+| `omega-graph.load-link`      |             | `CustomEvent<D3Link>`                  |
+| `omega-graph.load-protein`   |             | `CustomEvent<Promise<UniprotProtein>>` |
+| `omega-graph.prune-add`      |             | `CustomEvent<string \| string[]>`      |
+| `omega-graph.prune-remove`   |             | `CustomEvent<string>`                  |
+| `omega-graph.prune-reset`    |             | `CustomEvent<void>`                    |
+| `omega-graph.rebuild`        |             | `CustomEvent<void>`                    |
+| `omega-graph.rebuild_onto`   |             | `CustomEvent<string[]>`                |
+| `omega-graph.rebuild_taxo`   |             | `CustomEvent<string[]>`                |
 
 
 ## Methods
 
-### `downloadGraphAsImage(image_name?: string) => Promise<void>`
+### `downloadGraphAs(file_name: string, type?: string) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `downloadGraphAsImage(image_name?: string | CustomEvent<any>) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `downloadGraphAsJSON(name?: string | CustomEvent<any>) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `downloadGraphAsTab(name?: string | CustomEvent<any>) => Promise<void>`
 
 
 
@@ -55,27 +89,7 @@ Type: `Promise<any>`
 
 
 
-### `highlightLink(source: string, target: string) => Promise<void>`
-
-
-
-#### Returns
-
-Type: `Promise<void>`
-
-
-
 ### `highlightNode(...node_ids: string[]) => Promise<void>`
-
-
-
-#### Returns
-
-Type: `Promise<void>`
-
-
-
-### `highlightNodeRegex(matcher: RegExp) => Promise<void>`
 
 
 
@@ -136,6 +150,36 @@ Type: `Promise<void>`
 #### Returns
 
 Type: `Promise<void>`
+
+
+
+### `serialize<T, R = string>(encoder: (link: D3Link, node1: D3Node, node2: D3Node, accumulator?: T) => T, finalize_function?: (composed: T) => R) => Promise<string | R>`
+
+Serialize graph into a string using a custom function.
+
+#### Returns
+
+Type: `Promise<string | R>`
+
+
+
+### `toJSON() => Promise<string>`
+
+
+
+#### Returns
+
+Type: `Promise<string>`
+
+
+
+### `toTabular() => Promise<string>`
+
+
+
+#### Returns
+
+Type: `Promise<string>`
 
 
 
