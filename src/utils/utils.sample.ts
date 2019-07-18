@@ -1,6 +1,6 @@
 
 export const DEV_MODE = false;
-export const WEBSERVER_ROOT_URL = DEV_MODE ? "http://localhost" : "http://<web-server-ip>";
+export const WEBSERVER_ROOT_URL = DEV_MODE ? "http://localhost" : "<web-server-ip>";
 
 export const SERVER_WEBSOCKET_URL = WEBSERVER_ROOT_URL + (DEV_MODE ? ":3456" : "");
 export const OMEGA_TOPOLOGY_URL = WEBSERVER_ROOT_URL + (DEV_MODE ? ":3455" : '/service');
