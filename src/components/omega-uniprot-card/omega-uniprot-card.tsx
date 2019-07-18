@@ -181,7 +181,7 @@ export class OmegaUniprotCard {
 
         <div class="form-group" style={{'overflow-y': 'auto', 'margin-top': '5px', 'position': 'relative'}}>
           <div class="copy-button pointer-no-select" onClick={() => this.copyContent(this.el.querySelector('textarea'))}><i class="material-icons">content_copy</i></div>
-          <textarea class="form-control" rows={3} 
+          <textarea readOnly={true} class="form-control" rows={3} 
             value={Array.isArray(this.data.sequence) ? this.data.sequence[4] : this.data.sequence.sequence}></textarea>
         </div>
       </div>
