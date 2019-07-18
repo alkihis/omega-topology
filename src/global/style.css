@@ -166,3 +166,35 @@ body > * {
         transform: rotate(360deg);
     }
 }
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 5px;   
+    background: #999999;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+  
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%; 
+    border: 1px rgb(46, 46, 46) solid;
+    background: rgb(228, 228, 228);;
+    cursor: pointer;
+}
+  
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px rgb(46, 46, 46) solid;
+    background: rgb(228, 228, 228);
+    cursor: pointer;
+}
