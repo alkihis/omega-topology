@@ -1,5 +1,5 @@
 import OmegaTopology from 'omega-topology-fullstack';
-import { OMEGA_TOPOLOGY_URL, SERVER_WEBSOCKET_URL, UNIPROT_URL } from './utils';
+import { OMEGA_TOPOLOGY_URL, SERVER_WEBSOCKET_URL, UNIPROT_URL, SERVER_WEB_SOCKET_PREPEND } from './utils';
 import io from 'socket.io-client';
 import Timer from 'timerize';
 import { D3GraphBase } from './types';
@@ -25,7 +25,7 @@ const FrontTopology = new class FrontTopology {
   }
 
   protected configureSocket() {
-    this.socket = io(SERVER_WEBSOCKET_URL, { autoConnect: false, reconnectionAttempts: 20 });
+    this.socket = io(SERVER_WEBSOCKET_URL, { autoConnect: false, reconnectionAttempts: 20, path: SERVER_WEB_SOCKET_PREPEND + '/socket.io' });
   }
 
   init(specie = "R6", auto_mitab_dl = false) {
