@@ -34,6 +34,8 @@ body {
 
     transition: background-color .6s;
     background-color: black;
+
+    overflow: hidden;
 }
 
 body.white {

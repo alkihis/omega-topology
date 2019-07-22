@@ -14,17 +14,18 @@
 
 ## Events
 
-| Event                        | Description | Type                                   |
-| ---------------------------- | ----------- | -------------------------------------- |
-| `omega-graph.complete-reset` |             | `CustomEvent<void>`                    |
-| `omega-graph.load-link`      |             | `CustomEvent<D3Link>`                  |
-| `omega-graph.load-protein`   |             | `CustomEvent<Promise<UniprotProtein>>` |
-| `omega-graph.prune-add`      |             | `CustomEvent<string \| string[]>`      |
-| `omega-graph.prune-remove`   |             | `CustomEvent<string>`                  |
-| `omega-graph.prune-reset`    |             | `CustomEvent<void>`                    |
-| `omega-graph.rebuild`        |             | `CustomEvent<void>`                    |
-| `omega-graph.rebuild_onto`   |             | `CustomEvent<string[]>`                |
-| `omega-graph.rebuild_taxo`   |             | `CustomEvent<string[]>`                |
+| Event                        | Description | Type                                                       |
+| ---------------------------- | ----------- | ---------------------------------------------------------- |
+| `omega-graph.complete-reset` |             | `CustomEvent<void>`                                        |
+| `omega-graph.data-update`    |             | `CustomEvent<{ nodeNumber: number; linkNumber: number; }>` |
+| `omega-graph.load-link`      |             | `CustomEvent<D3Link>`                                      |
+| `omega-graph.load-protein`   |             | `CustomEvent<Promise<UniprotProtein>>`                     |
+| `omega-graph.prune-add`      |             | `CustomEvent<string \| string[]>`                          |
+| `omega-graph.prune-remove`   |             | `CustomEvent<string>`                                      |
+| `omega-graph.prune-reset`    |             | `CustomEvent<void>`                                        |
+| `omega-graph.rebuild`        |             | `CustomEvent<void>`                                        |
+| `omega-graph.rebuild_onto`   |             | `CustomEvent<string[]>`                                    |
+| `omega-graph.rebuild_taxo`   |             | `CustomEvent<string[]>`                                    |
 
 
 ## Methods

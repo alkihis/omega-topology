@@ -55,6 +55,7 @@ export namespace Components {
     'toJSON': () => Promise<string>;
     'toTabular': () => Promise<string>;
   }
+  interface OmegaGraphInfos {}
   interface OmegaImport {}
   interface OmegaMitabCard {
     'data': D3Link;
@@ -112,6 +113,12 @@ declare global {
   var HTMLOmegaGraphElement: {
     prototype: HTMLOmegaGraphElement;
     new (): HTMLOmegaGraphElement;
+  };
+
+  interface HTMLOmegaGraphInfosElement extends Components.OmegaGraphInfos, HTMLStencilElement {}
+  var HTMLOmegaGraphInfosElement: {
+    prototype: HTMLOmegaGraphInfosElement;
+    new (): HTMLOmegaGraphInfosElement;
   };
 
   interface HTMLOmegaImportElement extends Components.OmegaImport, HTMLStencilElement {}
@@ -176,6 +183,7 @@ declare global {
   interface HTMLElementTagNameMap {
     'omega-download': HTMLOmegaDownloadElement;
     'omega-graph': HTMLOmegaGraphElement;
+    'omega-graph-infos': HTMLOmegaGraphInfosElement;
     'omega-import': HTMLOmegaImportElement;
     'omega-mitab-card': HTMLOmegaMitabCardElement;
     'omega-onto': HTMLOmegaOntoElement;
@@ -197,6 +205,7 @@ declare namespace LocalJSX {
   }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
     'onOmega-graph.complete-reset'?: (event: CustomEvent<void>) => void;
+    'onOmega-graph.data-update'?: (event: CustomEvent<{nodeNumber: number, linkNumber: number}>) => void;
     'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
     'onOmega-graph.load-protein'?: (event: CustomEvent<Promise<UniprotProtein>>) => void;
     'onOmega-graph.prune-add'?: (event: CustomEvent<PruneAddProperty>) => void;
@@ -210,6 +219,7 @@ declare namespace LocalJSX {
     */
     'specie'?: string;
   }
+  interface OmegaGraphInfos extends JSXBase.HTMLAttributes<HTMLOmegaGraphInfosElement> {}
   interface OmegaImport extends JSXBase.HTMLAttributes<HTMLOmegaImportElement> {
     'onOmega-import.import'?: (event: CustomEvent<void>) => void;
   }
@@ -259,6 +269,7 @@ declare namespace LocalJSX {
   interface IntrinsicElements {
     'omega-download': OmegaDownload;
     'omega-graph': OmegaGraph;
+    'omega-graph-infos': OmegaGraphInfos;
     'omega-import': OmegaImport;
     'omega-mitab-card': OmegaMitabCard;
     'omega-onto': OmegaOnto;

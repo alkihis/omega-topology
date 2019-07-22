@@ -43,6 +43,9 @@ export class OmegaTaxo {
   @State()
   protected selected: [string, string][] = [];
 
+  @State()
+  protected all_selected = true;
+
   protected last_try: string[];
 
   @Event({
@@ -80,15 +83,17 @@ export class OmegaTaxo {
   }
 
   @Listen('selectionnable-tree.select')
-  nodeSelect(e: CustomEvent) {
+  nodeSelect(e: CustomEvent<{nodes: any[], name: string, all_selected: boolean}>) {
     // actualiser une liste
-    this.refreshSelected(e.detail);
+    this.refreshSelected(e.detail.nodes);
+    this.all_selected = e.detail.all_selected;
   }
 
   @Listen('selectionnable-tree.deselect')
   nodeUnSelect(e: CustomEvent) {
     // actualiser une liste
-    this.refreshSelected(e.detail);
+    this.refreshSelected(e.detail.nodes);
+    this.all_selected = e.detail.all_selected;
   }
 
   @Listen('omega-graph.complete-reset', { target: 'window' })
@@ -136,6 +141,10 @@ export class OmegaTaxo {
   }
 
   protected async trimTaxons(empty_force = false) {
+    if (this.all_selected) {
+      empty_force = true;
+    }
+
     this.trimByOntology.emit(empty_force ? [] : await this.tree.getSelected(e => e.original.misc.id));
   }
 

@@ -1,0 +1,15 @@
+.omega-graph-center {
+    position: absolute;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+    bottom: 7px;
+    text-align: center;
+    color: #ffffff87;
+    font-size: 14px;
+}
+
+.paragraph-info {
+    margin: 0;
+}

@@ -21,14 +21,14 @@
     "test.watch": "stencil test --spec --e2e --watchAll"
   },
   "devDependencies": {
-    "@stencil/core": "^1.1.6"
+    "@stencil/core": "^1.1.7"
   },
   "license": "MIT",
   "dependencies": {
     "3d-force-graph": "^1.49.7",
     "@mmsb/go-chart": "0.0.11",
     "@mmsb/network-table": "^1.0.17",
-    "@mmsb/selectionnable-tree": "0.0.25",
+    "@mmsb/selectionnable-tree": "0.0.27",
     "@tweenjs/tween.js": "^17.4.0",
     "@types/graphlib": "^2.1.5",
     "@types/jstree": "^3.3.37",

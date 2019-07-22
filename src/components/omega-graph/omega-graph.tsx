@@ -12,9 +12,6 @@ import { UniprotProtein } from 'omega-topology-fullstack/build/UniprotContainer'
 import Animator from './Animator';
 import { PSQData } from 'omega-topology-fullstack';
 
-// import * as jstree from '../../..//node_modules/jstree/dist/jstree';
-// import $ from 'jquery';
-
 @Component({
   tag: "omega-graph",
   styleUrl: 'omega-graph.css',
@@ -60,6 +57,10 @@ export class OmegaGraph {
   @Event({
     eventName: "omega-graph.complete-reset"
   }) resetAllData: EventEmitter<void>;
+
+  @Event({
+    eventName: "omega-graph.data-update"
+  }) actualDataUpdate: EventEmitter<{nodeNumber: number, linkNumber: number}>;
 
   public static readonly tag = "omega-graph";
 
@@ -149,7 +150,7 @@ export class OmegaGraph {
 
       window.addEventListener('FrontTopology.go-terms-downloaded', resolve_fn);
       window.addEventListener('FrontTopology.go-terms-download-error', error_fn);
-      const timeout = setTimeout(error_fn, 30000);
+      const timeout = setTimeout(error_fn, 40000);
     });
 
     try {
@@ -214,7 +215,7 @@ export class OmegaGraph {
   }
 
   /**
-   * Rendu graphique. Ne change jamais (juste un div adpaté)
+   * Rendu graphique.
    */
   render() {
     return <div graph-element></div>;
@@ -273,6 +274,8 @@ export class OmegaGraph {
   }
 
   set actual_data(data: D3GraphBase) {
+    this.actualDataUpdate.emit({ nodeNumber: data.nodes.length, linkNumber: data.links.length });
+
     if (!this.actual_data) {
       this.three_d_graph.graphData(data);
       this._actual_data = data;
@@ -438,6 +441,8 @@ export class OmegaGraph {
     this.updateGeometries();
   }
 
+  
+
   /** 
    * Construction d'un graphe, en utilisant ForceGraph3D.
    * 
@@ -473,6 +478,7 @@ export class OmegaGraph {
         // .linkWidth((link: D3Link) => (this.highlighted_links.has(link) || this.hovered_links.has(link)) ? 4 : 2)
         .cooldownTicks(300)
         .cooldownTime(10000)
+        .linkHoverPrecision(1.5)
         .onNodeClick((node: D3Node) => {
           if (this.in_selection) {
             if (this.highlighted_nodes.has(node)) {
