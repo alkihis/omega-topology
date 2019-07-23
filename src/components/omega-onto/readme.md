@@ -24,6 +24,16 @@ Type: `Promise<TreeLike[]>`
 
 
 
+### `selectedNumber(bottom?: boolean) => Promise<number>`
+
+
+
+#### Returns
+
+Type: `Promise<number>`
+
+
+
 ### `setData(d: SubNode) => Promise<void>`
 
 

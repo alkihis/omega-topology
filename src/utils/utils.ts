@@ -1,5 +1,5 @@
 
-export const DEV_MODE = false;
+export const DEV_MODE = true;
 export const WEBSERVER_ROOT_URL = DEV_MODE ? "http://localhost" : "http://134.158.246.161";
 
 export const SERVER_WEBSOCKET_URL = WEBSERVER_ROOT_URL + (DEV_MODE ? ":3456" : "");

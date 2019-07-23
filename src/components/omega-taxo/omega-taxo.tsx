@@ -57,6 +57,11 @@ export class OmegaTaxo {
   }
 
   @Method()
+  async selectedNumber(bottom = true) {
+    return bottom ? (await this.tree.getBottomSelected()).length : (await this.tree.getSelected()).length;
+  }
+
+  @Method()
   async setData(d: SubNode) {
     const e = this.tree;
 

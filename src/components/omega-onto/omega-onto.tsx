@@ -82,6 +82,11 @@ export class OmegaTaxo {
     this.selected = data.map(e => [e.text, e.original.misc.id]);
   }
 
+  @Method()
+  async selectedNumber(bottom = true) {
+    return bottom ? (await this.tree.getBottomSelected()).length : (await this.tree.getSelected()).length;
+  }
+
   @Listen('selectionnable-tree.select')
   nodeSelect(e: CustomEvent<{nodes: any[], name: string, all_selected: boolean}>) {
     // actualiser une liste

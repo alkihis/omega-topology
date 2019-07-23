@@ -13,17 +13,46 @@ export class OmegaInfos {
   graph_informations: { nodeNumber: number, linkNumber: number, trimSettings: TrimOptions } = {
     nodeNumber: NaN,
     linkNumber: NaN,
-    trimSettings: { }
+    trimSettings: {}
   };
 
   @Listen('omega-graph.data-update', { target: 'window' })
-  buildInfos(e: CustomEvent<{nodeNumber: number, linkNumber: number}>) {
+  async buildInfos(e: CustomEvent<{nodeNumber: number, linkNumber: number}>) {
+    const trimSettings = Object.assign({}, FrontTopology.current_trim_parameters, { custom_prune: FrontTopology.current_prune_parameters });
+
+    if (trimSettings.taxons && trimSettings.taxons.length) {
+      // Récupération du vrai nombre de taxons
+      const el = document.querySelector('omega-taxo');
+
+      if (el) {
+        const bottom = await el.selectedNumber();
+
+        if (bottom) {
+          trimSettings.taxons = Array(bottom).fill(null);
+        }
+      }
+    }
+
+    if (trimSettings.experimental_detection_method && trimSettings.experimental_detection_method.length) {
+      // Récupération du vrai nombre de cases cochées en ontologie
+      const el = document.querySelector('omega-onto');
+
+      if (el) {
+        const bottom = await el.selectedNumber();
+
+        if (bottom) {
+          trimSettings.experimental_detection_method = Array(bottom).fill(null);
+        }
+      }
+    }
+
     this.graph_informations = {
       nodeNumber: e.detail.nodeNumber,
       linkNumber: e.detail.linkNumber,
-      trimSettings: Object.assign({}, FrontTopology.current_trim_parameters, { custom_prune: FrontTopology.current_prune_parameters })
+      trimSettings
     };
-    console.log("Rebuilding infos", this.graph_informations);
+
+    // console.log("Rebuilding infos", this.graph_informations);
   }
 
 

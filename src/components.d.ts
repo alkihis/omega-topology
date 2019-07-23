@@ -46,6 +46,10 @@ export namespace Components {
     'resetHighlighting': () => Promise<void>;
     /**
     * Serialize graph into a string using a custom function.
+    * @template T
+    * @param encoder Called for each link in graph, with node1 & node2 as link source and target. Accumulator is undefined during the first call. Return value of the function will be used as accumulator during the next function call.
+    * @param finalize_function Optional. Called after link iteration.
+    * @returns R if finalize_function is defined, string instead.
     */
     'serialize': <T, R = string>(encoder: (link: D3Link, node1: D3Node, node2: D3Node, accumulator?: T) => T, finalize_function?: (composed: T) => R) => Promise<string | R>;
     /**
@@ -65,6 +69,7 @@ export namespace Components {
   }
   interface OmegaOnto {
     'getData': () => Promise<TreeLike[]>;
+    'selectedNumber': (bottom?: boolean) => Promise<number>;
     'setData': (d: SubNode) => Promise<void>;
     'unsetData': () => Promise<void>;
   }
@@ -76,6 +81,7 @@ export namespace Components {
   }
   interface OmegaTaxo {
     'getData': () => Promise<TreeLike[]>;
+    'selectedNumber': (bottom?: boolean) => Promise<number>;
     'setData': (d: SubNode) => Promise<void>;
     'unsetData': () => Promise<void>;
   }

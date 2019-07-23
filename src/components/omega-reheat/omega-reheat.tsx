@@ -25,7 +25,7 @@ export class OmegaTrim {
     return (
       <div>
         <div class="reheat-container" title="Reheat graph" data-toggle="modal" data-target="#modalReheat">
-          <i class="material-icons">update</i>
+          <i class="material-icons">whatshot</i>
         </div>
 
         <div class="modal fade" id="modalReheat" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
