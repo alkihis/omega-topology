@@ -20,15 +20,14 @@
     "test": "stencil test --spec --e2e",
     "test.watch": "stencil test --spec --e2e --watchAll"
   },
-  "devDependencies": {
-    "@stencil/core": "^1.2.0-1"
-  },
+  "devDependencies": {},
   "license": "MIT",
   "dependencies": {
     "3d-force-graph": "^1.50.0",
     "@mmsb/go-chart": "0.0.11",
     "@mmsb/network-table": "^1.0.17",
     "@mmsb/selectionnable-tree": "0.0.30",
+    "@stencil/core": "^1.1.9",
     "@tweenjs/tween.js": "^17.4.0",
     "@types/graphlib": "^2.1.5",
     "@types/jstree": "^3.3.37",
@@ -38,7 +37,7 @@
     "inspire-tree-dom": "^4.0.6",
     "jstree": "^3.3.8",
     "node-fetch": "^2.6.0",
-    "omega-topology-fullstack": "^1.4.0",
+    "omega-topology-fullstack": "^1.4.2",
     "progress": "^2.0.3",
     "python-enumerate": "^1.0.1",
     "python-zip": "^1.0.5",

@@ -215,13 +215,24 @@ const FrontTopology = new class FrontTopology {
       const tuples: [string, string, string][] = [];
       tuples.push(['UniProt ID', 'Gene name', 'Degree']);
 
+      const to_fetch = [];
+
       for (const [id, cmpt] of nodes) {
+        const uni_info = this.topo.uniprot_container.getTiny(id);
+
+        // Lance une récup
+        if (!uni_info) 
+          to_fetch.push(id);
+
         tuples.push([
           id,
-          this.topo.uniprot_container.getTiny(id).gene_names[0],
+          uni_info ? uni_info.gene_names[0] : "None",
           cmpt.val.toString()
         ]);
       }
+
+      if (to_fetch.length)
+        this.topo.uniprot_container.bulkTiny(...to_fetch);
 
       table.data = tuples;
     }
