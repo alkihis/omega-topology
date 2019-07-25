@@ -39,10 +39,10 @@ export class OmegaTrim {
     // Reset
     this.componentDidLoad();
     
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       this.el.querySelectorAll('input[type="range"]').forEach((e: HTMLInputElement) => e.value = e.min);
       this.fixed_by_user = false;
-    });
+    }, 30);
   }
 
   @Listen('omega-reheat.reheat', { target: 'window' })

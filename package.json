@@ -27,7 +27,7 @@
     "@mmsb/go-chart": "0.0.11",
     "@mmsb/network-table": "^1.0.17",
     "@mmsb/selectionnable-tree": "0.0.30",
-    "@stencil/core": "^1.1.9",
+    "@stencil/core": "^1.2.0",
     "@tweenjs/tween.js": "^17.4.0",
     "@types/graphlib": "^2.1.5",
     "@types/jstree": "^3.3.37",
