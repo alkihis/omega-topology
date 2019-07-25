@@ -135,7 +135,7 @@ export class OmegaTrim {
             <label class="text-center" htmlFor="evalRangeForm">
               E-value: <span class="font-weight-bold">10^-{this.e_value}</span>
             </label>
-            <input id="evalRangeForm" class="form-control-range" type="range" value={this.e_value} min={this.fix_at && this.fix_at.e_value ? this.fix_at.e_value : "1"} max="15" onInput={e => this.handleEvalue(e)}></input>
+            <input id="evalRangeForm" class="form-control-range" type="range" value={this.e_value} min={this.fix_at && this.fix_at.e_value ? this.fix_at.e_value : "1"} max="100" onInput={e => this.handleEvalue(e)}></input>
           </div>
         </form>
 
