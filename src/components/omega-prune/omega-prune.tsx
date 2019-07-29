@@ -37,6 +37,7 @@ export class OmegaTrim {
 
   protected distance = Infinity;
 
+  @Listen('omega-graph.prune-make', { target: 'window' })
   emitPrune() {
     FrontTopology.prune(this.selected, this.distance);
   }

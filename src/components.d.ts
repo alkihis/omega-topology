@@ -215,6 +215,7 @@ declare namespace LocalJSX {
     'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
     'onOmega-graph.load-protein'?: (event: CustomEvent<Promise<UniprotProtein>>) => void;
     'onOmega-graph.prune-add'?: (event: CustomEvent<PruneAddProperty>) => void;
+    'onOmega-graph.prune-make'?: (event: CustomEvent<string[]>) => void;
     'onOmega-graph.prune-remove'?: (event: CustomEvent<PruneDeleteProperty>) => void;
     'onOmega-graph.prune-reset'?: (event: CustomEvent<void>) => void;
     'onOmega-graph.rebuild'?: (event: CustomEvent<void>) => void;

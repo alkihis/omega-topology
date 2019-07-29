@@ -1,4 +1,4 @@
-import { Component, h, Prop, Listen, Element, Method, Event, EventEmitter } from '@stencil/core';
+import { Component, h, Prop, Listen, Element, Method, Event, EventEmitter, Watch, State } from '@stencil/core';
 import FrontTopology, { TrimOptions } from '../../utils/FrontTopology';
 
 import ForceGraph3D from '3d-force-graph';
@@ -20,6 +20,7 @@ import { PSQData } from 'omega-topology-fullstack';
 export class OmegaGraph {
   /** Espèce modélisée par le graphe */
   @Prop({ mutable: true }) specie: string = "r6";
+
   @Element() el: HTMLElement;
 
   @Event({
@@ -33,6 +34,10 @@ export class OmegaGraph {
   @Event({
     eventName: "omega-graph.prune-reset"
   }) resetSelectedNodes: EventEmitter<void>;
+
+  @Event({
+    eventName: "omega-graph.prune-make"
+  }) makeAPrune: EventEmitter<string[]>;
 
   @Event({
     eventName: "omega-graph.rebuild_taxo"
@@ -76,7 +81,11 @@ export class OmegaGraph {
   /** Graph 3D */
   protected three_d_graph: any = undefined;
 
+  @State()
   protected in_selection = false;
+
+  @State()
+  protected number_selected_nodes = 0;
   
   protected _actual_data: D3GraphBase;
   protected _links_to_nodes: ReversibleKeyMap<string, string, D3Link> = new ReversibleKeyMap;
@@ -115,6 +124,14 @@ export class OmegaGraph {
 
     // Attends l'initialisation des go_terms (c'est plus smooth après)
     this.load(true, true);
+  }
+
+  @Watch('specie')
+  protected specieChange(specie: string, old: string) {
+    if (specie !== old) {
+      // Attends que l'espèce soit modifiée puis recharge le graphe
+      setTimeout(this.load, 30);
+    }
   }
 
   async load(with_slowdown = false, wait_for_go_init = false) {
@@ -210,15 +227,21 @@ export class OmegaGraph {
     }
   }
 
-  componentDidUpdate() {
-    this.load();
-  }
-
   /**
    * Rendu graphique.
    */
   render() {
-    return <div graph-element></div>;
+    return (
+      <div>
+        <div graph-element />
+        <div class={"graph-selected-nodes" + (this.in_selection ? "" : " hide")}>
+          <div style={{'margin-bottom': '10px'}}>{this.number_selected_nodes} node(s) selected</div>
+
+          <button type="button" class="btn btn-warning btn-block" onClick={() => { this.makeAPrune.emit([...this.highlighted_nodes].map(e => e.id)) }}>Prune</button>
+          <button type="button" class="btn btn-dark btn-block" onClick={() => this.unselectAll()}>Unselect all</button>
+        </div>
+      </div>
+    );
   }
 
   protected clip(nodes: Map<string, D3Node>, links: Map<string, Set<string>>) {
@@ -408,6 +431,7 @@ export class OmegaGraph {
   @Listen('omega-prune.unselect-all', { target: 'window' })
   unselectAll() {
     this.resetHighlighting();
+    this.in_selection = false;
   }
 
   @Listen('omega-uniprot-card.hover-on', { target: 'window' })
@@ -671,6 +695,7 @@ export class OmegaGraph {
 
     this.updateGeometries();
     this.addSelectedNode.emit(to_highlight);
+    this.number_selected_nodes = this.highlighted_nodes.size;
   }
 
   @Method()
@@ -685,6 +710,8 @@ export class OmegaGraph {
     }
 
     this.updateGeometries();
+
+    this.number_selected_nodes = this.highlighted_nodes.size;
   }
 
   @Method()
@@ -695,12 +722,14 @@ export class OmegaGraph {
       this.highlighted_nodes.delete(nd);
     }
 
+    this.number_selected_nodes = this.highlighted_nodes.size;
     this.updateGeometries();
   }
 
   @Method()
   async resetHighlighting() {
     this.highlighted_nodes = new Set;
+    this.number_selected_nodes = this.highlighted_nodes.size;
     this.resetSelectedNodes.emit();
     this.updateGeometries();
   }
