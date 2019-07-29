@@ -134,7 +134,7 @@ export class OmegaImport {
   generateLoader() {
     return (
       <div>
-        <h5 class="modal-title">Loading...</h5>
+        <h5 class="modal-title"></h5>
         <p class="font-weight-bold text-center" style={{'margin-top': '10px'}} loader-message>
 
         </p>

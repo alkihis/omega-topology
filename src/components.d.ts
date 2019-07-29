@@ -27,6 +27,7 @@ import {
 } from '@mmsb/selectionnable-tree';
 
 export namespace Components {
+  interface OmegaArtefact {}
   interface OmegaDownload {}
   interface OmegaGraph {
     'downloadGraphAs': (file_name: string, type?: string) => Promise<void>;
@@ -76,6 +77,7 @@ export namespace Components {
   interface OmegaPrune {}
   interface OmegaReheat {}
   interface OmegaReset {}
+  interface OmegaSearch {}
   interface OmegaTabs {
     'goToTab': (tab: string) => Promise<void>;
   }
@@ -108,6 +110,12 @@ export namespace Components {
 
 declare global {
 
+
+  interface HTMLOmegaArtefactElement extends Components.OmegaArtefact, HTMLStencilElement {}
+  var HTMLOmegaArtefactElement: {
+    prototype: HTMLOmegaArtefactElement;
+    new (): HTMLOmegaArtefactElement;
+  };
 
   interface HTMLOmegaDownloadElement extends Components.OmegaDownload, HTMLStencilElement {}
   var HTMLOmegaDownloadElement: {
@@ -163,6 +171,12 @@ declare global {
     new (): HTMLOmegaResetElement;
   };
 
+  interface HTMLOmegaSearchElement extends Components.OmegaSearch, HTMLStencilElement {}
+  var HTMLOmegaSearchElement: {
+    prototype: HTMLOmegaSearchElement;
+    new (): HTMLOmegaSearchElement;
+  };
+
   interface HTMLOmegaTabsElement extends Components.OmegaTabs, HTMLStencilElement {}
   var HTMLOmegaTabsElement: {
     prototype: HTMLOmegaTabsElement;
@@ -187,6 +201,7 @@ declare global {
     new (): HTMLOmegaUniprotCardElement;
   };
   interface HTMLElementTagNameMap {
+    'omega-artefact': HTMLOmegaArtefactElement;
     'omega-download': HTMLOmegaDownloadElement;
     'omega-graph': HTMLOmegaGraphElement;
     'omega-graph-infos': HTMLOmegaGraphInfosElement;
@@ -196,6 +211,7 @@ declare global {
     'omega-prune': HTMLOmegaPruneElement;
     'omega-reheat': HTMLOmegaReheatElement;
     'omega-reset': HTMLOmegaResetElement;
+    'omega-search': HTMLOmegaSearchElement;
     'omega-tabs': HTMLOmegaTabsElement;
     'omega-taxo': HTMLOmegaTaxoElement;
     'omega-trim': HTMLOmegaTrimElement;
@@ -204,6 +220,9 @@ declare global {
 }
 
 declare namespace LocalJSX {
+  interface OmegaArtefact extends JSXBase.HTMLAttributes<HTMLOmegaArtefactElement> {
+    'onOmega-artefact.reset'?: (event: CustomEvent<void>) => void;
+  }
   interface OmegaDownload extends JSXBase.HTMLAttributes<HTMLOmegaDownloadElement> {
     'onOmega-download.download'?: (event: CustomEvent<string>) => void;
     'onOmega-download.download-as-file'?: (event: CustomEvent<string>) => void;
@@ -249,6 +268,9 @@ declare namespace LocalJSX {
   interface OmegaReset extends JSXBase.HTMLAttributes<HTMLOmegaResetElement> {
     'onOmega-reset.reset'?: (event: CustomEvent<void>) => void;
   }
+  interface OmegaSearch extends JSXBase.HTMLAttributes<HTMLOmegaSearchElement> {
+    'onOmega-search.search'?: (event: CustomEvent<string[]>) => void;
+  }
   interface OmegaTabs extends JSXBase.HTMLAttributes<HTMLOmegaTabsElement> {}
   interface OmegaTaxo extends JSXBase.HTMLAttributes<HTMLOmegaTaxoElement> {
     'onOmega-taxo.trim'?: (event: CustomEvent<string[]>) => void;
@@ -274,6 +296,7 @@ declare namespace LocalJSX {
   }
 
   interface IntrinsicElements {
+    'omega-artefact': OmegaArtefact;
     'omega-download': OmegaDownload;
     'omega-graph': OmegaGraph;
     'omega-graph-infos': OmegaGraphInfos;
@@ -283,6 +306,7 @@ declare namespace LocalJSX {
     'omega-prune': OmegaPrune;
     'omega-reheat': OmegaReheat;
     'omega-reset': OmegaReset;
+    'omega-search': OmegaSearch;
     'omega-tabs': OmegaTabs;
     'omega-taxo': OmegaTaxo;
     'omega-trim': OmegaTrim;

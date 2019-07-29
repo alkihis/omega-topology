@@ -371,6 +371,16 @@ export class OmegaGraph {
     this.highlightNode(...nodes);
   }
 
+  @Listen('go-chart.hover-on', { target: 'window' })
+  hoverByGoId(event: CustomEvent<string[]>) {
+    const go_ids = event.detail;
+
+    // Get nodes from GO IDS
+    const nodes = FrontTopology.topo.go_container.bulkSearch(go_ids);
+
+    this.makeNodeHovered(nodes);
+  }
+
   // WILL LOOSE ALL EXISTING DATA
   @Listen('omega-reheat.reheat', { target: 'window' })
   reheat(data?: D3GraphBase) {
@@ -395,12 +405,29 @@ export class OmegaGraph {
   }
 
   @Listen('omega-reset.reset', { target: 'window' })
+  @Listen('omega-artefact.reset', { target: 'window' })
   reset() {
     console.log("Reset");
+    
+    this.destroyCurrentGraph(true);
+
     this._actual_data = undefined;
     this.three_d_graph = undefined;
     this._links_to_nodes = new ReversibleKeyMap;
-    FrontTopology.trim({ keep_old: false });
+    FrontTopology.trim({ keep_old: false, custom_prune: [[], Infinity] });
+
+    const self = this;
+    setTimeout(function reloadData() {
+      if (self.three_d_graph.graphData().nodes[0].id === undefined) {
+        setTimeout(reloadData, 100);
+      }
+      else {
+        // Actualise les arbres si les infos mitab sont disponibles
+        self.updateTrees();
+
+        FrontTopology.setupUniprotData();
+      }
+    }, 100);
   }
 
   @Listen('trim-property-change', { target: 'window' })
@@ -436,18 +463,17 @@ export class OmegaGraph {
 
   @Listen('omega-uniprot-card.hover-on', { target: 'window' })
   makeNodeOverHistory(e: CustomEvent<string>) {
-    this.history_hover_nodes = new Set([e.detail]);
-    this.updateGeometries();
+    this.makeNodeHovered([e.detail]);
   }
 
   @Listen('network-table.hover-on', { target: 'window' })
   makeNodeTable(e: CustomEvent<string[]>) {
-    this.history_hover_nodes = new Set([e.detail[0]]);
-    this.updateGeometries();
+    this.makeNodeHovered([e.detail[0]]);
   }
 
   @Listen('omega-uniprot-card.hover-off', { target: 'window' })
   @Listen('network-table.hover-off', { target: 'window' })
+  @Listen('go-chart.hover-off', { target: 'window' })
   removeNodeOverHistory() {
     this.history_hover_nodes = new Set;
     this.updateGeometries();
@@ -462,6 +488,11 @@ export class OmegaGraph {
   @Listen('omega-mitab-card.hover-off', { target: 'window' })
   removeLinkOverHistory() {
     this.history_hover_links = new Set;
+    this.updateGeometries();
+  }
+
+  makeNodeHovered(nodes: string[]) {
+    this.history_hover_nodes = new Set(nodes);
     this.updateGeometries();
   }
 
