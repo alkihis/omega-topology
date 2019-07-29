@@ -408,7 +408,7 @@ export class OmegaGraph {
   @Listen('omega-artefact.reset', { target: 'window' })
   reset() {
     console.log("Reset");
-    
+
     this.destroyCurrentGraph(true);
 
     this._actual_data = undefined;
