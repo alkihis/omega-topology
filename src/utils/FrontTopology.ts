@@ -4,57 +4,107 @@ import io from 'socket.io-client';
 import Timer from 'timerize';
 import { D3GraphBase } from './types';
 
+/**
+ * FrontTopology administrate the OmegaTopology object.
+ * 
+ * Used when accessing to the interolog network data, to produce a new graph, 
+ * to do actions to the graph like trimming and pruning, refresh components data
+ * like ontology tree, or download informations like MI Tab data automatically.
+ */
 const FrontTopology = new class FrontTopology {
+  /**
+   * OmegaTopology object. Can be changed when the specie change.
+   */
   protected topology: OmegaTopology;
+  /** Promise indicating when graph skeleton is ready */
   protected init_prom: Promise<OmegaTopology> = undefined;
+  /** Promise indicating when graph skeleton, uniprot data and mitab data are ready */
   public full_ready_promise: Promise<any> = undefined;
+  /** Promise indicating when mitab data skeleton is ready */
   protected mitab_promise: Promise<OmegaTopology> = undefined;
 
+  /** Mitab expected download size */
   protected mitab_total: number;
+  /** Downloaded mitab lines */
   protected mitab_downloaded = 0;
+  /** True if mitab is downloaded */
   protected mitab_complete = false;
 
+  /** Socket.io instance for dialogue with omega-topology-mitab-service */
   protected socket: SocketIOClient.Socket;
+  /** Promise resolving when Socket.io connection is etablished. */
   protected socket_promise: Promise<void> = undefined;
+  /** True if the connection to Socket.io service can not be etablished. */
   protected socket_io_fail = false;
 
+  /** Current specie name. */
   protected current_specie: string;
+
+  /** 
+   * Trimming parameters cache. Store previously set parameters and apply them during the next `.trim()`.
+   */
+  protected _trim_cache: TrimOptions = {};
+  /**
+   * Prune parameters cache. Store previoulsy set parameters and apply them if a new `.trim()` is asked (by default, a trim erase a prune).
+   */
+  protected _prune_cache: [string[], number];
   
+  /**
+   * Construct a new FrontTopology object and auto configure Socket.io instance
+   */
   constructor() {
     this.configureSocket();
   }
 
+  /** Auto configure the Socket.io instance. */
   protected configureSocket() {
     this.socket = io(SERVER_WEBSOCKET_URL, { autoConnect: false, reconnectionAttempts: 20, path: SERVER_WEB_SOCKET_PREPEND + '/socket.io' });
   }
 
+  /**
+   * Initialize the FrontTopology object for the desired specie.
+   * 
+   * If you want to change current specie, just re-call this method with the new specie name.
+   * 
+   * @param specie Specie name to load
+   * @param auto_mitab_dl True if the MI Tab data download should automatically begin. 
+   * If not, you must use `.downloadMitabLines()` in order to start download.
+   */
   init(specie = "R6", auto_mitab_dl = false) {
+    // Reset all socket connection, in case of the mitab was already in download
     this.resetSocketIo();
 
+    // Instanciate new Omegatopology instance
     this.topology = new OmegaTopology(undefined, undefined, UNIPROT_URL);
     // @ts-ignore
     window["topology"] = this.topology;
     
+    // Reset counters
     this.mitab_total = NaN;
     this.mitab_downloaded = 0;
 
+    // Register current specie
     this.current_specie = specie.toLocaleLowerCase();
 
+    // Initialize the skeleton with fromDownload
     this.init_prom = this.topology.fromDownload(OMEGA_TOPOLOGY_URL + "/tree/" + this.current_specie)
       .then(() => { 
         this.topology.constructGraph();
         return this.topology;
       });
 
+    // Initalize the GO terms then the uniprot data
     const after_init = this.init_prom.then(async () => {
       Timer.default_format = "s";
       const t = new Timer;
       console.log("Downloading GO Terms...");
 
       try {
+        // Download in the Container
         await this.topo.downloadGoTerms(...this.topo.nodes.map(e => e[0]));
         console.log("Go terms downloaded in", t.elapsed);
 
+        // Automatic setup (with go-chart setup)
         this.setupGoTerms();
 
         window.dispatchEvent(new CustomEvent('FrontTopology.go-terms-downloaded'));
@@ -69,9 +119,11 @@ const FrontTopology = new class FrontTopology {
       t.reset();
 
       try {
+        // Download in the container
         await this.topo.downloadNeededUniprotData();
         console.log('Download complete in', t.elapsed, '.');
   
+        // Setup network-table
         this.setupNetworkTable();
   
         window.dispatchEvent(new CustomEvent('FrontTopology.uniprot-downloaded'));
@@ -81,6 +133,7 @@ const FrontTopology = new class FrontTopology {
       }
     });
 
+    // Start auto download if wanted
     if (auto_mitab_dl) {
       const mitab_prom = this.downloadMitabLines();
       return this.full_ready_promise = Promise.all([after_init, mitab_prom]);
@@ -91,24 +144,35 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
-  protected resetSocketIo() {
+  /**
+   * Reset the Socket.io connection and disconnect all.
+   */
+  protected resetSocketIo(auto_reconnect = true) {
     this.socket.disconnect();
     this.socket.removeAllListeners();
     this.socket_io_fail = false;
 
     this.mitab_promise = undefined;
 
-    return this.socket_promise = new Promise((resolve, reject) => {
-      this.socket.connect();
-      this.socket.on('connect', resolve);
-      this.socket.on('connect_error', () => { 
-        reject(); 
-        this.socket_io_fail = true; 
-        window.dispatchEvent(new CustomEvent<number>('FrontTopology.mitab-download-update', { detail: null }));
+    if (auto_reconnect) {
+      return this.socket_promise = new Promise((resolve, reject) => {
+        this.socket.connect();
+        this.socket.on('connect', resolve);
+        this.socket.on('connect_error', () => { 
+          reject(); 
+          this.socket_io_fail = true; 
+          window.dispatchEvent(new CustomEvent<number>('FrontTopology.mitab-download-update', { detail: null }));
+        });
       });
-    });
+    }
+    else {
+      return undefined;
+    }
   }
 
+  /**
+   * Automatic download all the UniProt data (GO terms + Protein infos) and setup the components go-chart and network-table.
+   */
   async downloadUniprotData() {
     await this.topo.downloadGoTerms(...this.topo.nodes.map(e => e[0]));
     this.setupGoTerms();
@@ -116,6 +180,10 @@ const FrontTopology = new class FrontTopology {
     this.setupNetworkTable();
   }
 
+  /**
+   * Download the required MI Tab lines, load them into the PSICQuic container, then register them into HoParameterSets.
+   * @param reset_socket_io True if you want to reset Socket.io instance (f.e. if the download has already failed)
+   */
   downloadMitabLines(reset_socket_io = false) {
     return this.mitab_promise = (reset_socket_io ? this.resetSocketIo() : this.socket_promise).then(() => {
       // récupère les pairs
@@ -144,7 +212,6 @@ const FrontTopology = new class FrontTopology {
 
           this.socket.close();
 
-          
           this.mitab_complete = true;
           
           this.topology.linkMitabLines();
@@ -160,6 +227,10 @@ const FrontTopology = new class FrontTopology {
     });
   }
 
+  /**
+   * Automatic setup for go-chart (format GO terms to the go-chart data entry then load).
+   * @param visible_only Visible nodes only.
+   */
   protected setupGoTerms(visible_only = true) {
     // GO Chart
     const go = document.querySelector('go-chart');
@@ -204,6 +275,9 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
+  /**
+   * Automatic setup for network-table (format nodes and UniProt gene names to the network-table format then load).
+   */
   protected setupNetworkTable() {
     const nodes = this.topo.nodes;
 
@@ -248,6 +322,9 @@ const FrontTopology = new class FrontTopology {
     this.setupNetworkTable();
   }
 
+  /**
+   * Generate 3DGraph `.graphData()` compatible data from the current `OmegaTopology` graph.
+   */
   protected getD3GraphBaseFromOmegaTopology() {
     const nodes = this.topology.nodes;
     const links = this.topology.links;
@@ -259,6 +336,11 @@ const FrontTopology = new class FrontTopology {
     } as D3GraphBase;
   }
   
+  /**
+   * Reconstruct the internal interolog graph, compute nodes and links data, then trigger a graph update.
+   * 
+   * @param reset If the interolog graph needs a reconstruct (`false` after a prune !)
+   */
   showGraph(reset = true) {
     if (reset)
       this.topology.constructGraph(true);
@@ -270,6 +352,9 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
+  /**
+   * Completely reset the instance. Recommanded before a new `.init()`.
+   */
   resetInstance() {
     this.topology = undefined;
     this.init_prom = undefined;
@@ -278,24 +363,41 @@ const FrontTopology = new class FrontTopology {
     this.mitab_total = undefined;
     this.mitab_downloaded = 0;
     this.mitab_complete = false;
+    this.resetSocketIo(false);
     this.configureSocket();
     this.socket_promise = undefined;
     this.socket_io_fail = false;
     this.current_specie = undefined;
   }
 
-  ///// CACHE
-  protected _trim_cache: TrimOptions = {};
-  protected _prune_cache: [string[], number];
-
+  /**
+   * Trimming parameters used in the previous `.trim()` call.
+   */
   get current_trim_parameters() {
     return this._trim_cache;
   }
 
+  /**
+   * Prune parameters used in the previous `.prune()` or `.trim()` call.
+   */
   get current_prune_parameters() {
     return this._prune_cache;
   }
 
+  /**
+   * Trim the current graph using `OmegaTopology`'s `.trimEdges()`.
+   * 
+   * This method will automatically apply old non-specified trimming parameters,
+   * unless you specify `keep_old = false` inside the `options` object.
+   * 
+   * If one trim option does not exists in your `options` object, and is not present in the
+   * old saved parameters, the automatic default setting will be applied.
+   * 
+   * Default settings for each parameters are:
+   * `identity = 0, similarity = 0, coverage = 0, experimental_detection_method = [], taxons = [], e_value = Infinity, definitive = false`
+   * 
+   * @param options Trimming options. See `TrimOptions` interface.
+   */
   trim(options: TrimOptions = {}) {
     if (options.keep_old !== false) {
       // Récupère les données du cache
@@ -320,10 +422,12 @@ const FrontTopology = new class FrontTopology {
 
     console.log(removed, "removed from total", total);
 
-    // Sauvegarde le cache
-    this._trim_cache = {
-      identity, similarity, coverage, experimental_detection_method, taxons, e_value
-    };
+    // Sauvegarde le cache si skip_save === false ou si il n'est pas défini
+    if (!options.skip_save) {
+      this._trim_cache = {
+        identity, similarity, coverage, experimental_detection_method, taxons, e_value
+      };
+    }
 
     if (options.custom_prune) {
       this.prune(...options.custom_prune); return;
@@ -336,6 +440,12 @@ const FrontTopology = new class FrontTopology {
     this.showGraph();
   }
 
+  /**
+   * Prune the current graph using `OmegaTopology`'s `.prune()`.
+   * 
+   * @param seeds Protein IDs to define as graph seeds
+   * @param distance Maximum visible distance from seeds
+   */
   prune(seeds: string[], distance = Infinity) {
     const graph = this.topology.prune(distance, ...seeds);
     
@@ -355,14 +465,22 @@ const FrontTopology = new class FrontTopology {
     this.showGraph(false);
   }
 
+  /** Internal OmegaTopology object */
   get topo() {
     return this.topology;
   }
 
+  /** Internal PSICQuic container */
+  get psi() {
+    return this.topology.psi;
+  }
+
+  /** Taxonomic IDs inside the graph */
   get taxo_ids() {
     return this.topology.visible_taxonomy_ids_in_graph;
   }
 
+  /** MI IDs inside the graph */
   get onto_ids() {
     return this.topology.visible_experimental_methods_in_graph;
   }
@@ -371,10 +489,12 @@ const FrontTopology = new class FrontTopology {
     return this.init_prom;
   }
   
+  /** MI Tab download percentage */
   get percentage_mitab() {
     return (this.mitab_downloaded / this.mitab_total) * 100;
   }
 
+  /** True if the MI Tab data are loaded */
   get mitab_loaded() {
     if (this.topo) {
       return this.topo.mitab_loaded;
@@ -388,13 +508,24 @@ export default FrontTopology;
 window['fronttopology'] = FrontTopology;
 
 export interface TrimOptions {
+  /** Sequence identity percentage. */
   identity?: number,
+  /** Sequence similarity percentage. */
   similarity?: number,
+  /** Sequence coverage percentage. */
   coverage?: number,
+  /** Authorized interaction detection method. Empty array mean all the methods are authorized. */
   experimental_detection_method?: string[],
+  /** Authorized taxons. Empty array mean all the taxons are authorized. */
   taxons?: string[],
+  /** Maximum e-value for homology. */
   e_value?: number,
+  /** Determine if the trim will remove permanently invalid nodes from the network. */
   definitive?: boolean,
+  /** False mean that the old saved trimming parameters will be ignored. */
   keep_old?: boolean,
-  custom_prune?: [string[], number]
+  /** Specify here prune parameters if you want to prune the network after the trim. */
+  custom_prune?: [string[], number],
+  /** If true, the trim parameters for this call will not be saved. */
+  skip_save?: boolean
 }

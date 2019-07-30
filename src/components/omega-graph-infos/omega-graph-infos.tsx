@@ -51,8 +51,6 @@ export class OmegaInfos {
       linkNumber: e.detail.linkNumber,
       trimSettings
     };
-
-    // console.log("Rebuilding infos", this.graph_informations);
   }
 
 

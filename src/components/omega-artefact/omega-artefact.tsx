@@ -38,7 +38,7 @@ export class OmegaArtefact {
       <div>
         <h5 class="modal-title">Loading...</h5>
         <p>
-            Please wait, the graph will soon reload
+          Please wait, the graph will soon reload
         </p>
       </div>
     );

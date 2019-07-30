@@ -1,6 +1,6 @@
 import { Component, h, Prop, Listen, Element, Method, State, Watch, Event, EventEmitter } from '@stencil/core';
 import { UniprotProtein } from 'omega-topology-fullstack/build/UniprotContainer';
-import { JSXBase } from '@mmsb/selectionnable-tree/dist/types/stencil.core';
+import { JSXBase } from '@stencil/core/internal';
 
 @Component({
   tag: "omega-uniprot-card",
