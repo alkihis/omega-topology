@@ -12,6 +12,8 @@ import { D3GraphBase } from './types';
  * like ontology tree, or download informations like MI Tab data automatically.
  */
 const FrontTopology = new class FrontTopology {
+  /* --- PROPERTIES --- */
+
   /**
    * OmegaTopology object. Can be changed when the specie change.
    */
@@ -48,17 +50,16 @@ const FrontTopology = new class FrontTopology {
    * Prune parameters cache. Store previoulsy set parameters and apply them if a new `.trim()` is asked (by default, a trim erase a prune).
    */
   protected _prune_cache: [string[], number];
+
+  /* --- METHODS --- */
+
+  /* -- INITALIZATION -- */
   
   /**
    * Construct a new FrontTopology object and auto configure Socket.io instance
    */
   constructor() {
     this.configureSocket();
-  }
-
-  /** Auto configure the Socket.io instance. */
-  protected configureSocket() {
-    this.socket = io(SERVER_WEBSOCKET_URL, { autoConnect: false, reconnectionAttempts: 20, path: SERVER_WEB_SOCKET_PREPEND + '/socket.io' });
   }
 
   /**
@@ -145,6 +146,31 @@ const FrontTopology = new class FrontTopology {
   }
 
   /**
+   * Completely reset the instance. Recommanded before a new `.init()`.
+   */
+  resetInstance() {
+    this.topology = undefined;
+    this.init_prom = undefined;
+    this.mitab_promise = undefined;
+    this.full_ready_promise = undefined;
+    this.mitab_total = undefined;
+    this.mitab_downloaded = 0;
+    this.mitab_complete = false;
+    this.resetSocketIo(false);
+    this.configureSocket();
+    this.socket_promise = undefined;
+    this.socket_io_fail = false;
+    this.current_specie = undefined;
+  }
+
+  /* -- SOCKET.IO -- */
+
+  /** Auto configure the Socket.io instance. */
+  protected configureSocket() {
+    this.socket = io(SERVER_WEBSOCKET_URL, { autoConnect: false, reconnectionAttempts: 20, path: SERVER_WEB_SOCKET_PREPEND + '/socket.io' });
+  }
+
+  /**
    * Reset the Socket.io connection and disconnect all.
    */
   protected resetSocketIo(auto_reconnect = true) {
@@ -170,6 +196,8 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
+  /* -- UNIPROT DATA -- */
+
   /**
    * Automatic download all the UniProt data (GO terms + Protein infos) and setup the components go-chart and network-table.
    */
@@ -181,51 +209,15 @@ const FrontTopology = new class FrontTopology {
   }
 
   /**
-   * Download the required MI Tab lines, load them into the PSICQuic container, then register them into HoParameterSets.
-   * @param reset_socket_io True if you want to reset Socket.io instance (f.e. if the download has already failed)
+   * Rebuild UniProt data (with GO Chart and Network table)
+   * Graph must have been constructed !!
+   * @param visible_only 
    */
-  downloadMitabLines(reset_socket_io = false) {
-    return this.mitab_promise = (reset_socket_io ? this.resetSocketIo() : this.socket_promise).then(() => {
-      // récupère les pairs
-      const pairs = this.topology.uniqueTemplatePairs(false);
-
-      console.log(pairs.length, "pairs");
-
-      // Les demande au serveur
-      this.socket.emit('getlines', this.current_specie, pairs);
-
-      Timer.default_format = "s";
-      const t = new Timer;
-
-      // Attend la réponse du serveur
-      this.mitab_total = pairs.length;
-
-      this.socket.on(this.current_specie, (lines: string[][]) => {
-        this.mitab_downloaded += this.topology.read(lines);
-        // Envoi l'évènement de push
-        window.dispatchEvent(new CustomEvent<number>('FrontTopology.mitab-download-update', { detail: this.percentage_mitab }));
-      });
-
-      return new Promise((resolve, reject) => {
-        this.socket.on('terminate', () => {
-          console.log("Over download for", this.current_specie, "in", t.elapsed, "seconds");
-
-          this.socket.close();
-
-          this.mitab_complete = true;
-          
-          this.topology.linkMitabLines();
-          
-          // Résoud la promesse
-          resolve(this.topology);
-
-          // Envoie l'évènement de terminaison
-          window.dispatchEvent(new CustomEvent('FrontTopology.mitab-downloaded'));
-        });
-        this.socket.on('error', reject);
-      });
-    });
+  setupUniprotData(visible_only = true) {
+    this.setupGoTerms(visible_only);
+    this.setupNetworkTable();
   }
+
 
   /**
    * Automatic setup for go-chart (format GO terms to the go-chart data entry then load).
@@ -312,30 +304,57 @@ const FrontTopology = new class FrontTopology {
     }
   }
 
-  /**
-   * Rebuild UniProt data (with GO Chart and Network table)
-   * Graph must have been constructed !!
-   * @param visible_only 
-   */
-  setupUniprotData(visible_only = true) {
-    this.setupGoTerms(visible_only);
-    this.setupNetworkTable();
-  }
+  /* -- INTERACTION DATA - MI TAB -- */
 
   /**
-   * Generate 3DGraph `.graphData()` compatible data from the current `OmegaTopology` graph.
+   * Download the required MI Tab lines, load them into the PSICQuic container, then register them into HoParameterSets.
+   * @param reset_socket_io True if you want to reset Socket.io instance (f.e. if the download has already failed)
    */
-  protected getD3GraphBaseFromOmegaTopology() {
-    const nodes = this.topology.nodes;
-    const links = this.topology.links;
+  downloadMitabLines(reset_socket_io = false) {
+    return this.mitab_promise = (reset_socket_io ? this.resetSocketIo() : this.socket_promise).then(() => {
+      // récupère les pairs
+      const pairs = this.topology.uniqueTemplatePairs(false);
 
-    // @ts-ignore
-    return {
-      nodes: nodes.map(e => { return { id: e[0], group: e[1].group, value: e[1].val } }),
-      links: links.map(l => { return { source: l[0][0], target: l[0][1], misc: l[1], value: "" } })
-    } as D3GraphBase;
+      console.log(pairs.length, "pairs");
+
+      // Les demande au serveur
+      this.socket.emit('getlines', this.current_specie, pairs);
+
+      Timer.default_format = "s";
+      const t = new Timer;
+
+      // Attend la réponse du serveur
+      this.mitab_total = pairs.length;
+
+      this.socket.on(this.current_specie, (lines: string[][]) => {
+        this.mitab_downloaded += this.topology.read(lines);
+        // Envoi l'évènement de push
+        window.dispatchEvent(new CustomEvent<number>('FrontTopology.mitab-download-update', { detail: this.percentage_mitab }));
+      });
+
+      return new Promise((resolve, reject) => {
+        this.socket.on('terminate', () => {
+          console.log("Over download for", this.current_specie, "in", t.elapsed, "seconds");
+
+          this.socket.close();
+
+          this.mitab_complete = true;
+          
+          this.topology.linkMitabLines();
+          
+          // Résoud la promesse
+          resolve(this.topology);
+
+          // Envoie l'évènement de terminaison
+          window.dispatchEvent(new CustomEvent('FrontTopology.mitab-downloaded'));
+        });
+        this.socket.on('error', reject);
+      });
+    });
   }
-  
+
+  /* -- GRAPH MANIPULATION -- */
+
   /**
    * Reconstruct the internal interolog graph, compute nodes and links data, then trigger a graph update.
    * 
@@ -350,38 +369,6 @@ const FrontTopology = new class FrontTopology {
     if (el) {
       el.dispatchEvent(new CustomEvent('omega-graph-make-graph', { detail: { graph_base: this.getD3GraphBaseFromOmegaTopology() } }));
     }
-  }
-
-  /**
-   * Completely reset the instance. Recommanded before a new `.init()`.
-   */
-  resetInstance() {
-    this.topology = undefined;
-    this.init_prom = undefined;
-    this.mitab_promise = undefined;
-    this.full_ready_promise = undefined;
-    this.mitab_total = undefined;
-    this.mitab_downloaded = 0;
-    this.mitab_complete = false;
-    this.resetSocketIo(false);
-    this.configureSocket();
-    this.socket_promise = undefined;
-    this.socket_io_fail = false;
-    this.current_specie = undefined;
-  }
-
-  /**
-   * Trimming parameters used in the previous `.trim()` call.
-   */
-  get current_trim_parameters() {
-    return this._trim_cache;
-  }
-
-  /**
-   * Prune parameters used in the previous `.prune()` or `.trim()` call.
-   */
-  get current_prune_parameters() {
-    return this._prune_cache;
   }
 
   /**
@@ -463,6 +450,36 @@ const FrontTopology = new class FrontTopology {
     }
 
     this.showGraph(false);
+  }
+
+  /**
+   * Generate 3DGraph `.graphData()` compatible data from the current `OmegaTopology` graph.
+   */
+  protected getD3GraphBaseFromOmegaTopology() {
+    const nodes = this.topology.nodes;
+    const links = this.topology.links;
+
+    // @ts-ignore
+    return {
+      nodes: nodes.map(e => { return { id: e[0], group: e[1].group, value: e[1].val } }),
+      links: links.map(l => { return { source: l[0][0], target: l[0][1], misc: l[1], value: "" } })
+    } as D3GraphBase;
+  }
+
+  /* -- ACCESSORS -- */
+
+  /**
+   * Trimming parameters used in the previous `.trim()` call.
+   */
+  get current_trim_parameters() {
+    return this._trim_cache;
+  }
+
+  /**
+   * Prune parameters used in the previous `.prune()` or `.trim()` call.
+   */
+  get current_prune_parameters() {
+    return this._prune_cache;
   }
 
   /** Internal OmegaTopology object */
