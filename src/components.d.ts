@@ -30,20 +30,57 @@ export namespace Components {
   interface OmegaArtefact {}
   interface OmegaDownload {}
   interface OmegaGraph {
+    /**
+    * Universal method to download the graph in the file format you want.
+    * @param file_name Filename (without extension)
+    * @param type Could be "image", "JSON" or "tabular"
+    */
     'downloadGraphAs': (file_name: string, type?: string) => Promise<void>;
+    /**
+    * Start the download of the graph as a JPG image
+    * @param image_name Filename. Could be wrapped in a CustomEvent.
+    */
     'downloadGraphAsImage': (image_name?: string | CustomEvent<any>) => Promise<void>;
+    /**
+    * Start the download of the graph as a JSON file
+    * @param name Filename. Could be wrapped in a CustomEvent.
+    */
     'downloadGraphAsJSON': (name?: string | CustomEvent<any>) => Promise<void>;
+    /**
+    * Start the download of the graph as a tabulated file
+    * @param name Filename. Could be wrapped in a CustomEvent.
+    */
     'downloadGraphAsTab': (name?: string | CustomEvent<any>) => Promise<void>;
-    'getLinksOf': (id: string) => Promise<any>;
-    'getNode': (id: string) => Promise<any>;
+    /**
+    * Get `D3Link[]` objects linked to a node ID.
+    */
+    'getLinksOf': (id: string) => Promise<D3Link[]>;
+    /**
+    * Get a `D3Node` object according to its ID.
+    */
+    'getNode': (id: string) => Promise<D3Node>;
+    /**
+    * Highlight one or multiple nodes, according to their IDs.
+    * @param node_ids Must be nodes IDs (protein accession numbers)
+    */
     'highlightNode': (...node_ids: string[]) => Promise<void>;
     /**
-    * Construction d'un graphe, en utilisant ForceGraph3D.  Capable de recevoir un *CustomEvent* doté une propriété *detail* contenant un objet, possédant une propriété *graph_base* de type `D3GraphBase` (type `MakeGraphEvent`).  Il est possible de directement passer un object implémentant `D3GraphBase` à cette fonction, qui construira le graphe en conséquence.
+    * Make the graph, using ForceGraph3D.  Able to receive a *CustomEvent* holding a *detail* property, containing a *graph_base* property of type `D3GraphBase` (type `MakeGraphEvent`).  You can also just give a `D3GraphBase` complient object to this method.
     */
     'make3dGraph': (data: CustomEvent<{ graph_base: D3GraphBase; }> | D3GraphBase) => Promise<void>;
+    /**
+    * Remove highlighting from one or multiple nodes, according to their IDs.
+    * @param node_ids Must be nodes IDs (protein accession numbers)
+    */
     'removeHighlighting': (...node_ids: string[]) => Promise<void>;
-    'removeHighlightingRegex': (matcher: RegExp) => Promise<void>;
+    /**
+    * Remove a node from the graph.  Warning, with the new graph actualisation system, the graph must be reheated after the removal !
+    * @param removed_nodes Remove a node according to its reference (`D3Node`), to its ID (`string`), or with a ID-Regex-matcher (`RegExp`).
+    */
     'removeNode': (...removed_nodes: (string | RegExp | D3Node)[]) => Promise<void>;
+    /**
+    * Remove the highlighting for all the nodes.
+    */
     'resetHighlighting': () => Promise<void>;
     /**
     * Serialize graph into a string using a custom function.
@@ -54,10 +91,16 @@ export namespace Components {
     */
     'serialize': <T, R = string>(encoder: (link: D3Link, node1: D3Node, node2: D3Node, accumulator?: T) => T, finalize_function?: (composed: T) => R) => Promise<string | R>;
     /**
-    * Espèce modélisée par le graphe
+    * Specie representated by the graph
     */
     'specie': string;
+    /**
+    * Serialize the graph to JSON (using the `.serialize()` method).
+    */
     'toJSON': () => Promise<string>;
+    /**
+    * Serialize the graph to tabular data (using the `.serialize()` method).
+    */
     'toTabular': () => Promise<string>;
   }
   interface OmegaGraphInfos {}
@@ -229,19 +272,52 @@ declare namespace LocalJSX {
     'onOmega-download.download-as-json'?: (event: CustomEvent<string>) => void;
   }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
+    /**
+    * Fires when the graph is reset
+    */
     'onOmega-graph.complete-reset'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when the graph has a node number or a link number update
+    */
     'onOmega-graph.data-update'?: (event: CustomEvent<{nodeNumber: number, linkNumber: number}>) => void;
+    /**
+    * Fires when a link is clicked, and a information card needs to be loaded
+    */
     'onOmega-graph.load-link'?: (event: CustomEvent<D3Link>) => void;
+    /**
+    * Fires when a node is clicked, and a information card needs to be loaded
+    */
     'onOmega-graph.load-protein'?: (event: CustomEvent<Promise<UniprotProtein>>) => void;
+    /**
+    * Fires when a node is selected
+    */
     'onOmega-graph.prune-add'?: (event: CustomEvent<PruneAddProperty>) => void;
+    /**
+    * Fires when a prune is asked
+    */
     'onOmega-graph.prune-make'?: (event: CustomEvent<string[]>) => void;
+    /**
+    * Fires when a node is unselected
+    */
     'onOmega-graph.prune-remove'?: (event: CustomEvent<PruneDeleteProperty>) => void;
+    /**
+    * Fires when button "unselect all" is clicked
+    */
     'onOmega-graph.prune-reset'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when the graph is refreshed
+    */
     'onOmega-graph.rebuild'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when ontology tree needs to be refreshed. Data: MI IDs
+    */
     'onOmega-graph.rebuild_onto'?: (event: CustomEvent<string[]>) => void;
+    /**
+    * Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs
+    */
     'onOmega-graph.rebuild_taxo'?: (event: CustomEvent<string[]>) => void;
     /**
-    * Espèce modélisée par le graphe
+    * Specie representated by the graph
     */
     'specie'?: string;
   }
@@ -285,7 +361,7 @@ declare namespace LocalJSX {
       e_value?: string
     };
     'identity'?: string;
-    'onTrim-property-change'?: (event: CustomEvent<TrimProperties>) => void;
+    'onOmega-trim.property-change'?: (event: CustomEvent<TrimProperties>) => void;
     'similarity'?: string;
   }
   interface OmegaUniprotCard extends JSXBase.HTMLAttributes<HTMLOmegaUniprotCardElement> {

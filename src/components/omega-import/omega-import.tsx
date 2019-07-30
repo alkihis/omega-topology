@@ -2,6 +2,11 @@ import { Component, h, Element, Event, EventEmitter, State, Watch } from '@stenc
 import FrontTopology from '../../utils/FrontTopology';
 import { BASE_FIXES } from '../../utils/utils';
 
+/**
+ * Import a saved JSON graph into current session.
+ * 
+ * The modal should not close when the mouse clicks away.
+ */
 @Component({
   tag: "omega-import",
   styleUrl: 'omega-import.css',
@@ -10,17 +15,21 @@ import { BASE_FIXES } from '../../utils/utils';
 export class OmegaImport {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-import";
-
+  /**
+   * Register the File object that is inside the file input.
+   */
   @State()
   protected file: File;
 
+  /** True if user has clicked on the load button. */
   @State()
   protected has_accepted = false;
 
+  /** True if the file failed to load. */
   @State()
   protected in_error = false;
 
+  /** Fires when a file import started. (order a reset) */
   @Event({
     eventName: "omega-import.import"
   }) import: EventEmitter<void>;
@@ -34,9 +43,16 @@ export class OmegaImport {
     this.has_accepted = false;
   }
 
+  /**
+   * Read the JSON file and load all the graph with it.
+   * 
+   * Download specie skeleton, download GO terms and UniProt data, apply filters and refresh components.
+   */
   async loadTheFile() {
+    // Lance le loader
     this.has_accepted = true;
     
+    // Attends un peu
     await new Promise(resolve => setTimeout(resolve, 20));
     
     const progress = this.el.querySelector('.progress-bar') as HTMLElement;
@@ -46,7 +62,6 @@ export class OmegaImport {
     message.innerText = "Reading JSON file";
 
     // Lit le fichier
-
     try {
       let graph: any = await new Promise((resolve, reject) => {
         const r = new FileReader;
@@ -63,14 +78,15 @@ export class OmegaImport {
 
       progress.style.width = "10%";
 
+      // Ordonne de vider le graphe
       this.emit();
 
       message.innerText = "Downloading graph skeleton";
 
       // Laisse du temps aux composants de se dé-initialiser
-      // À exporter dans un composant à part (avec affichage de modal !)
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Met les sliders de omega-trim au bon endroit
       const trim = document.querySelector('omega-trim');
       const trim_p = graph.misc.trim_parameters;
 
@@ -104,7 +120,7 @@ export class OmegaImport {
       message.innerText = "Downloading interaction data";
 
       // Lance le télécharge du MI Tab 
-      // (nécessaire pour pouvoir faire certains types de prune)
+      // (nécessaire pour pouvoir faire certains types de trim)
       await FrontTopology.downloadMitabLines().catch(() => clearInterval(interval));
 
       clearInterval(interval);

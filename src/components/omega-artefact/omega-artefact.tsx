@@ -1,6 +1,11 @@
 import { Component, h, Element, Event, EventEmitter, State, Watch } from '@stencil/core';
 import FrontTopology from '../../utils/FrontTopology';
 
+/**
+ * Component used for create artefactual edges.
+ * 
+ * Use a bootstrap modal as interface.
+ */
 @Component({
   tag: "omega-artefact",
   styleUrl: 'omega-artefact.css',
@@ -9,12 +14,16 @@ import FrontTopology from '../../utils/FrontTopology';
 export class OmegaArtefact {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-artefact";
-
+  /**
+   * Fires when omega-artefact needs to reset the graph after links importatiob.
+   */
   @Event({
     eventName: "omega-artefact.reset"
   }) reheat: EventEmitter<void>;
 
+  /**
+   * File stored into the component
+   */
   @State()
   protected file: File;
 
@@ -23,9 +32,15 @@ export class OmegaArtefact {
     this.has_accepted = false;
   }
 
+  /**
+   * Store if the user have clicked on the "Load" button
+   */
   @State()
   protected has_accepted = false;
 
+  /**
+   * True if the file could not be read
+   */
   @State()
   protected in_error = false;
 
@@ -33,6 +48,9 @@ export class OmegaArtefact {
     this.reheat.emit();
   }
 
+  /**
+   * HTML generation for the loading indicator
+   */
   generateLoader() {
     return (
       <div>
@@ -44,6 +62,11 @@ export class OmegaArtefact {
     );
   }
 
+  /**
+   * Read the selected file.
+   * 
+   * Add all the links presents in the file into the interolog network, then refresh the graph.
+   */
   async loadTheFile() {
     this.has_accepted = true;
     
@@ -131,6 +154,9 @@ export class OmegaArtefact {
     );
   }
 
+  /**
+   * Refresh the file property with the input[type=file] data.
+   */
   handleFileChange(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     this.in_error = false;

@@ -1,6 +1,9 @@
 import { Component, h, Element, State, Host, Listen } from '@stencil/core';
 import FrontTopology, { TrimOptions } from '../../utils/FrontTopology';
 
+/**
+ * Show a short résumé of current graph nodes number and links number and the current trimming parameters.
+ */
 @Component({
   tag: "omega-graph-infos",
   styleUrl: 'omega-graph-infos.css',
@@ -9,13 +12,17 @@ import FrontTopology, { TrimOptions } from '../../utils/FrontTopology';
 export class OmegaInfos {
   @Element() el: HTMLElement;
 
+  /** Store current informations to show to the user */
   @State()
-  graph_informations: { nodeNumber: number, linkNumber: number, trimSettings: TrimOptions } = {
+  protected graph_informations: { nodeNumber: number, linkNumber: number, trimSettings: TrimOptions } = {
     nodeNumber: NaN,
     linkNumber: NaN,
     trimSettings: {}
   };
 
+  /**
+   * Listen for graph data update, and register proper informations in `graph_informations`.
+   */
   @Listen('omega-graph.data-update', { target: 'window' })
   async buildInfos(e: CustomEvent<{nodeNumber: number, linkNumber: number}>) {
     const trimSettings = Object.assign({}, FrontTopology.current_trim_parameters, { custom_prune: FrontTopology.current_prune_parameters });
@@ -53,7 +60,9 @@ export class OmegaInfos {
     };
   }
 
-
+  /**
+   * Generate information text, in HTML.
+   */
   generateInfoCard() {
     const trim_s = this.graph_informations.trimSettings;
 

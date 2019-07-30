@@ -1,6 +1,11 @@
 import { Component, h, Element, Event, EventEmitter, State } from '@stencil/core';
 import FrontTopology from '../../utils/FrontTopology';
 
+/**
+ * Button used to download current graph.
+ * 
+ * Use a bootstrap modal as interface.
+ */
 @Component({
   tag: "omega-download",
   styleUrl: 'omega-download.css',
@@ -9,23 +14,34 @@ import FrontTopology from '../../utils/FrontTopology';
 export class OmegaTrim {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-download";
+  /**
+   * Property used to trigger a render. Store a random number. 
+   */
+  @State() 
+  protected render_trigger: number;
 
-  @State() render_trigger: number;
-
+  /**
+   * Fires when user ask a download as image.
+   */
   @Event({
     eventName: "omega-download.download"
   }) image: EventEmitter<string>;
 
+  /**
+   * Fires when user ask a download as tabular file.
+   */
   @Event({
     eventName: "omega-download.download-as-file"
   }) file: EventEmitter<string>;
 
+  /**
+   * Fires when user ask a download as JSON.
+   */
   @Event({
     eventName: "omega-download.download-as-json"
   }) fileJSON: EventEmitter<string>;
 
-  emit(e: HTMLInputElement) {
+  downloadAsImage(e: HTMLInputElement) {
     this.image.emit(e.value);
   }
 
@@ -36,6 +52,9 @@ export class OmegaTrim {
       this.fileJSON.emit(e.value);
   }
 
+  /**
+   * Generate list of pruning parameter in HTML.
+   */
   generatePruneParameters() {
     const trim_p = FrontTopology.current_trim_parameters;
     const prune_p = FrontTopology.current_prune_parameters;
@@ -57,9 +76,13 @@ export class OmegaTrim {
     ];
   }
 
+  /**
+   * Generate list of trimming parameter in HTML.
+   */
   generateTrimParameters() {
     const trim_p = FrontTopology.current_trim_parameters;
 
+    // Bind keys to human readable title
     const binding = {
       identity: "Identity",
       similarity: "Similarity",
@@ -75,6 +98,7 @@ export class OmegaTrim {
       return <li>You don't have any current trimming parameters</li>;
     }
     
+    // Generate HTML with binding title: value
     for (const t in trim_p) {
       const data = trim_p[t];
       const title = binding[t];
@@ -141,7 +165,7 @@ export class OmegaTrim {
 
                 <hr/>
 
-                <button type="button" class="btn btn-success btn-block" data-dismiss="modal" onClick={() => this.emit(this.el.querySelector('#__graph-name'))}>Download as image</button>
+                <button type="button" class="btn btn-success btn-block" data-dismiss="modal" onClick={() => this.downloadAsImage(this.el.querySelector('#__graph-name'))}>Download as image</button>
                 <button type="button" class="btn btn-info btn-block" data-dismiss="modal" onClick={() => this.downloadAsFile(this.el.querySelector('#__graph-name'))}>Download as tabular file</button>
                 <button type="button" class="btn btn-dark btn-block" data-dismiss="modal" onClick={() => this.downloadAsFile(this.el.querySelector('#__graph-name'), "JSON")}>Download as JSON file</button>
               </div>

@@ -18,9 +18,9 @@
 
 ## Events
 
-| Event                  | Description | Type                                                                                        |
-| ---------------------- | ----------- | ------------------------------------------------------------------------------------------- |
-| `trim-property-change` |             | `CustomEvent<{ identity: number; e_value: number; similarity: number; coverage: number; }>` |
+| Event                        | Description | Type                                                                                        |
+| ---------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| `omega-trim.property-change` |             | `CustomEvent<{ identity: number; e_value: number; similarity: number; coverage: number; }>` |
 
 
 ## Dependencies

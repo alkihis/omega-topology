@@ -1,6 +1,6 @@
 import { Component, h, Prop, Listen, Element, Method, State, Event, EventEmitter, Watch } from '@stencil/core';
 import { TrimProperties } from '../../utils/types';
-import { BASE_COVERAGE, BASE_IDENTITY, BASE_SIMILARITY, BASE_E_VALUE, BASE_FIXES } from '../../utils/utils';
+import { BASE_FIXES } from '../../utils/utils';
 
 const original_fixed_at = BASE_FIXES;
 
