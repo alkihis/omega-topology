@@ -367,7 +367,7 @@ const FrontTopology = new class FrontTopology {
     const el = document.querySelector('omega-graph');
 
     if (el) {
-      el.dispatchEvent(new CustomEvent('omega-graph-make-graph', { detail: { graph_base: this.getD3GraphBaseFromOmegaTopology() } }));
+      el.dispatchEvent(new CustomEvent('omega-graph.make-graph', { detail: { graph_base: this.getD3GraphBaseFromOmegaTopology() } }));
     }
   }
 

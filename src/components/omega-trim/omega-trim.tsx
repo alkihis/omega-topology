@@ -29,7 +29,7 @@ export class OmegaTrim {
   } = original_fixed_at;
 
   @Event({
-    eventName: "trim-property-change"
+    eventName: "omega-trim.property-change"
   }) propChange: EventEmitter<TrimProperties>;
 
   @Listen('omega-reset.reset', { target: 'window' })
