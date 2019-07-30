@@ -3,6 +3,11 @@ import { TreeAsAPI, SubNode, TreeLike } from '@mmsb/selectionnable-tree';
 import { ONTOLOGY_URL } from '../../utils/utils';
 import FrontTopology from '../../utils/FrontTopology';
 
+/**
+ * Ontology tree, representing all the MI IDs presents in the graph.
+ * 
+ * Use selectionnable-tree inside it, and need micro-service omega-topology-MIontology
+ */
 @Component({
   tag: "omega-onto",
   styleUrl: 'omega-onto.css',
@@ -11,22 +16,27 @@ import FrontTopology from '../../utils/FrontTopology';
 export class OmegaTaxo {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-onto";
-
+  /** True if MI Tab data is ready. */
   @State() mitab_loaded = false;
+  /** Store the MI Tab download percent internally. */
   @State() mitab_percent = 0;
+  /** Store if the MI Tab download has encountered an error. */
   @State() mitab_socket_error = false;
 
+  /** Set `mitab_loaded` to true. */
   @Listen('FrontTopology.mitab-downloaded', { target: 'window' })
   loadMitab() {
     this.mitab_loaded = true;
   }
 
+  /** Refresh the MI Tab percent. */
   @Listen('FrontTopology.mitab-download-update', { target: 'window' })
   updateMitab(e: CustomEvent<number | null>) {
     if (e.detail === null) {
       // socket error !
       this.mitab_socket_error = true;
+      this.mitab_loaded = false;
+      this.mitab_percent = 0;
     }
     else {
       this.mitab_socket_error = false
@@ -34,28 +44,36 @@ export class OmegaTaxo {
     }
   }
 
+  /** Register if the tree can be loaded. */
   @State()
   protected _has_data = false;
 
+  /** Register if a tree fetch has failed or not. */
   @State()
   protected in_error = false;
 
+  /** Register currently selected elements? */
   @State()
   protected selected: [string, string][] = [];
 
+  /** Register if all elements of the tree are selected. */
   @State()
   protected all_selected = true;
 
+  /** Register the last sended MI IDs required to build the tree. */
   protected last_try: string[];
 
+  /** Fires when a trim by ontology terms is asked. */
   @Event({
     eventName: 'omega-onto.trim'
   }) trimByOntology: EventEmitter<string[]>;
 
+  /** Tree component instance. */
   protected get tree() {
     return this.el.querySelector('selectionnable-tree');
   }
 
+  /** Register new data inside the tree, via a API response (SubNode). */
   @Method()
   async setData(d: SubNode) {
     const e = this.tree;
@@ -67,26 +85,31 @@ export class OmegaTaxo {
     this.in_error = false;
   }
 
+  /** Get the actual loaded data in the tree instance. */
   @Method()
   async getData() : Promise<TreeLike[]> {
     return this.tree.data;
   }
 
+  /** Unset currently loaded data. */
   @Method()
   async unsetData() {
     this._has_data = false;
     this.in_error = false;
   }
 
+  /** Refresh the currently selected elements from a JSTree objects array. */
   protected refreshSelected(data: any[]) {
     this.selected = data.map(e => [e.text, e.original.misc.id]);
   }
 
+  /** Get the number of selected nodes. */
   @Method()
-  async selectedNumber(bottom = true) {
-    return bottom ? (await this.tree.getBottomSelected()).length : (await this.tree.getSelected()).length;
+  async selectedNumber(bottom_only = true) {
+    return bottom_only ? (await this.tree.getBottomSelected()).length : (await this.tree.getSelected()).length;
   }
 
+  /** Listen for node selection inside the tree component. */
   @Listen('selectionnable-tree.select')
   nodeSelect(e: CustomEvent<{nodes: any[], name: string, all_selected: boolean}>) {
     // actualiser une liste
@@ -94,6 +117,7 @@ export class OmegaTaxo {
     this.all_selected = e.detail.all_selected;
   }
 
+  /** Listen for node unselection inside the tree component. */
   @Listen('selectionnable-tree.deselect')
   nodeUnSelect(e: CustomEvent) {
     // actualiser une liste
@@ -101,6 +125,7 @@ export class OmegaTaxo {
     this.all_selected = e.detail.all_selected;
   }
 
+  /** Listen for graph reinitialization (reset the tree). */
   @Listen('omega-graph.complete-reset', { target: 'window' })
   resetTree() {
     this.mitab_loaded = false;
@@ -109,6 +134,7 @@ export class OmegaTaxo {
     this.tree.data = [];
   }
 
+  /** Listen for ontology rebuild (takes a MI IDs array in parameter). */
   @Listen('omega-graph.rebuild_onto', {
     target: 'window'
   })
@@ -124,6 +150,7 @@ export class OmegaTaxo {
     }
   }
 
+  /** Retry the tree construction from the API. */
   protected retryLoad() {
     if (this.last_try) {
       this.in_error = false;
@@ -131,12 +158,14 @@ export class OmegaTaxo {
     }
   }
 
+  /** Retry the MI Tab download, in case of error. */
   protected retryMitabLoad() {
     FrontTopology.downloadMitabLines(true);
     this.mitab_loaded = false;
     this.mitab_socket_error = false;
   }
 
+  /** Fetch the tree data from the API, with the wanted MI IDs in `list`. */
   protected async getOntology(list: string[]) : Promise<{ tree: TreeAsAPI }> {
     return fetch(ONTOLOGY_URL + '/tree', {
       method: 'POST',
@@ -145,6 +174,7 @@ export class OmegaTaxo {
     }).then(r => r.ok ? r.json() : r.json().then(j => Promise.reject(j)));
   }
 
+  /** Start a trim by ontology with the currently selected nodes. */
   protected async trimTaxons(empty_force = false) {
     if (this.all_selected) {
       empty_force = true;
@@ -153,6 +183,7 @@ export class OmegaTaxo {
     this.trimByOntology.emit(empty_force ? [] : await this.tree.getSelected(e => e.original.misc.id));
   }
 
+  /** HTML tree generation error message. */
   protected errorMessage() {
     return (
       <div>
@@ -169,6 +200,7 @@ export class OmegaTaxo {
     );
   }
 
+  /** HTML MI Tab download error message. */
   protected mitabErrorMessage() {
     return (
       <div>

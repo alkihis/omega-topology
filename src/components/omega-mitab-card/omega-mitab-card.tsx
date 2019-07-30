@@ -14,6 +14,8 @@ import OntologyTermsCache from '../../utils/OntologyTermsCache';
  * Present homologs informations, sorted by similarity,
  * allow to see discarded homology evidences,
  * and see experimental detection method.
+ * 
+ * Use TaxonomyTermsCache and OntologyTermsCache classes in order to load taxonomy or ontology terms.
  */
 @Component({
   tag: "omega-mitab-card",
