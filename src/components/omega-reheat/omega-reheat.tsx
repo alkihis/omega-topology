@@ -1,15 +1,19 @@
 import { Component, h, Element, Event, EventEmitter } from '@stencil/core';
 
+/**
+ * Modal in charge to give an order to reheat the graph.
+ * 
+ * Modal access is made with a button.
+ */
 @Component({
   tag: "omega-reheat",
   styleUrl: 'omega-reheat.css',
   shadow: false
 })
-export class OmegaTrim {
+export class OmegaReheat {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-reheat";
-
+  /** Fires when use decides to start a reheat. */
   @Event({
     eventName: "omega-reheat.reheat"
   }) reheat: EventEmitter<void>;

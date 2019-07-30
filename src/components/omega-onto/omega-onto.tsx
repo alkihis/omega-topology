@@ -135,7 +135,7 @@ export class OmegaTaxo {
   }
 
   /** Listen for ontology rebuild (takes a MI IDs array in parameter). */
-  @Listen('omega-graph.rebuild_onto', {
+  @Listen('omega-graph.rebuild-onto', {
     target: 'window'
   })
   async rebuildTree(e: CustomEvent<string[]>) {

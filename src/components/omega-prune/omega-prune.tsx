@@ -2,56 +2,67 @@ import { Component, h, Listen, Element, State, Event, EventEmitter } from '@sten
 import FrontTopology from '../../utils/FrontTopology';
 import { PruneAddProperty, PruneDeleteProperty } from '../../utils/types';
 
+/**
+ * Allow the user to select nodes, browse into existing nodes in the graph,
+ * then consider them as seeds, to make a subgraph (prune).
+ * 
+ * omega-prune is made to be included inside omega-tabs.
+ */
 @Component({
   tag: "omega-prune",
   styleUrl: 'omega-prune.css',
   shadow: false
 })
-export class OmegaTrim {
+export class OmegaPrune {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-prune";
-
+  /** Register if UniProt data has been downloaded or not. */
   @State() uniprot_loaded = false;
 
+  /** Register UniProt download as OK. */
   @Listen('FrontTopology.uniprot-downloaded', { target: 'window' })
   loadUniprot() {
     this.uniprot_loaded = true;
   }
 
+  /** Fires when user start selection mode. */
   @Event({
     eventName: "omega-prune.selection"
   }) selectEvent: EventEmitter<void>;
 
+  /** Fires when user end selection mode. */
   @Event({
     eventName: "omega-prune.end-selection"
   }) endSelectEvent: EventEmitter<void>;
 
+  /** Fires when user ask a global unselect of all nodes. */
   @Event({
     eventName: "omega-prune.unselect-all"
   }) unSelectEvent: EventEmitter<void>;
 
+  /** Register selected nodes. */
   @State() selected: string[] = [];
 
+  /** Register if current mode is selection or not. */
   @State() in_selection = false;
 
+  /** Register currently selected distance. */
   protected distance = Infinity;
 
+  /** Listen for a prune request, and execute it. */
   @Listen('omega-graph.prune-make', { target: 'window' })
   emitPrune() {
     FrontTopology.prune(this.selected, this.distance);
   }
 
-  toggleVision() {
-    this.el.classList.toggle('hide-elements');
-  }
-
+  /** Listen for a node click during selection mode, add it to selected nodes. */
   @Listen('omega-graph.prune-add', { target: 'window' })
   protected addNode(e: CustomEvent<PruneAddProperty>) {
     const to_add = typeof e.detail === 'string' ? [e.detail as string] : [...e.detail as string[]];
     this.selected = [...new Set([...this.selected, ...to_add])];
   }
 
+  /** Listen for a node click during selection mode, remove it from selected nodes. */
   @Listen('omega-graph.prune-remove', { target: 'window' })
   protected removeNode(e: CustomEvent<PruneDeleteProperty>) {
     const s = new Set(this.selected);
@@ -59,27 +70,32 @@ export class OmegaTrim {
     this.selected = [...s];
   }
 
+  /** Listen for a unselect all request, reset selected nodes array. */
   @Listen('omega-graph.prune-reset', { target: 'window' })
   protected resetNodes() {
     this.selected = [];
     this.endSelection();
   }
 
+  /** Start the selection mode. */
   protected beginSelection() {
     this.selectEvent.emit();
     this.in_selection = true;
   }
 
+  /** End the selection mode. */
   protected endSelection() {
     this.endSelectEvent.emit();
     this.in_selection = false;
   }
 
+  /** Unselect all nodes, and exit selection mode. */
   protected resetSelection() {
     this.unSelectEvent.emit();
     this.in_selection = false;
   }
 
+  /** Check if the choosen distance is valid. */
   protected updateDistance(event: Event) {
     const dist = (event.target as HTMLSelectElement).value;
 

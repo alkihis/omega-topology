@@ -123,7 +123,7 @@ export class OmegaGraph {
 
   /** Fires when ontology tree needs to be refreshed. Data: MI IDs */
   @Event({
-    eventName: "omega-graph.rebuild_onto"
+    eventName: "omega-graph.rebuild-onto"
   }) buildOntoTree: EventEmitter<string[]>;
 
   /** Fires when the graph is refreshed */
