@@ -8,6 +8,13 @@ import { BASE_FIXES } from '../../utils/utils';
 import TaxonomyTermsCache from '../../utils/TaxonomyTermsCache';
 import OntologyTermsCache from '../../utils/OntologyTermsCache';
 
+/**
+ * Show link information.
+ * 
+ * Present homologs informations, sorted by similarity,
+ * allow to see discarded homology evidences,
+ * and see experimental detection method.
+ */
 @Component({
   tag: "omega-mitab-card",
   styleUrl: 'omega-mitab-card.css',
@@ -16,37 +23,48 @@ import OntologyTermsCache from '../../utils/OntologyTermsCache';
 export class OmegaMitabCard {
   @Element() el: HTMLElement;
 
+  /** True if the card is loading */
   @State()
   protected in_preload = false;
 
+  /** True if history is visible */
   @State()
   protected history_shown = false;
 
+  /** Links presents in history (including actual link) */
   @State()
   protected history: D3Link[] = [];
 
+  /** Sort method applied to show homology evidences */
   @State()
-  protected sortMethod: "descLowQ" | "ascLowQ" | "descHighQ" | "ascHighQ"  = "descLowQ";
+  protected sortMethod: "descLowQ" | "ascLowQ" | "descHighQ" | "ascHighQ" = "descLowQ";
   
+  /** True if discarded evidences should be shown */
   @State()
   protected showInvalid = false;
 
+  /** Cache for taxonomy_id => human readable term */
   @State()
   protected taxonomy_cache: { [id: string]: string } = {};
 
+  /** Cache for mi_id => human readable term */
   protected ontology_cache: { [id: string]: string } = {};
 
+  /** True if component should refresh cache at the next componentDidUpdate() */
   @State()
   protected must_update = false;
 
+  /** Fires when link is hovered in the history */
   @Event({
     eventName: 'omega-mitab-card.hover-on'
   }) hoverOn: EventEmitter<D3Link>;
   
+  /** Fires when link becomes not hovered in the history */
   @Event({
     eventName: 'omega-mitab-card.hover-off'
   }) hoverOff: EventEmitter<void>;
 
+  /** Check if the modal should be closed. Takes a MouseEvent in argument. If the modal should be closed, close it. */
   protected readonly close_fn = (e: Event) => {
     let element = e.target as HTMLElement;
 
@@ -63,20 +81,24 @@ export class OmegaMitabCard {
     this.hide();
   };
 
+  /** Actual link data. */
   @Prop() data: D3Link;
 
+  /** Makes the card in preload mode. */
   @Method()
   async preload() {
     this.in_preload = true;
     this.show();
   }
 
+  /** Listen for graph rebuild, to clear history. */
   @Listen('omega-graph.rebuild', { target: 'window' })
   resetHistory() {
     if (this.history.length !== 0)
       this.closeHistory(true);
   }
 
+  /** Close the history modal. */
   protected closeHistory(reset = false) {
     if (reset)
       this.history = [];
@@ -86,6 +108,10 @@ export class OmegaMitabCard {
     this.hoverOff.emit();
   }
 
+  /** Listen for link click.
+   * Load link data on current instance, automatically show the modal 
+   * and register the link into the history.
+   */
   @Listen('omega-graph.load-link', { target: 'window' })
   async loadLinkData(e: CustomEvent<D3Link> | D3Link) {
     if (e instanceof CustomEvent) {
@@ -107,6 +133,9 @@ export class OmegaMitabCard {
     this.addInHistory(e);
   }
 
+  /**
+   * When the data is set, preload mode is cancelled.
+   */
   @Watch('data')
   setData(d: D3Link) {
     if (d) {
@@ -114,15 +143,18 @@ export class OmegaMitabCard {
     }
   }
 
+  /** Show the modal. */
   @Method()
   async show() {
     this.el.querySelector('[omega-mitab-card-base]').classList.remove('hidden');
 
+    // Ajoute close_fn en tant qu'event lst. (pas de suite, sinon il va recevoir le click d'ouverture)
     setTimeout(() => {
       window.addEventListener('click', this.close_fn);
     }, 100);
   }
 
+  /** Close the modal. */
   @Method()
   async hide() {
     this.el.querySelector('[omega-mitab-card-base]').classList.add('hidden');
@@ -131,6 +163,7 @@ export class OmegaMitabCard {
     this.destroyTooltips();
   }
 
+  /** Add a link into the history. */
   protected addInHistory(p: D3Link) {
     this.history = [...this.history.filter(e => e !== p), p];
 
@@ -153,6 +186,7 @@ export class OmegaMitabCard {
     } catch (e) { }
   }
 
+  /** If the cache needs an update, trigger a cache download. */
   async componentDidUpdate() {
     if (this.must_update && this.data) {
       this.must_update = false;
@@ -187,6 +221,7 @@ export class OmegaMitabCard {
     this.initTooltips();
   }
 
+  /** Determine which node is the low and which is the high. */
   protected getLowHighQuery() : [D3Node, D3Node] {
     // Construction des données !
     const node1 = this.data.source;
@@ -204,12 +239,13 @@ export class OmegaMitabCard {
     return [lowQuery, highQuery];
   }
 
-  // Génération de l'HTML du body
+  /** Generate body HTML */
   protected generateHTML() {
     // Construction des données !
     const omega_trim_element = document.querySelector('omega-trim');
     const current_max_similarity = omega_trim_element ? omega_trim_element.similarity : BASE_FIXES.similarity;
 
+    // Détermination low/high
     const [lowQuery, highQuery] = this.getLowHighQuery();
 
     // tr generation
@@ -217,6 +253,7 @@ export class OmegaMitabCard {
     const trs: TR_Array_Element[] = [];
     const invalid_trs: TR_Array_Element[] = [];
 
+    // Génération du gradient de couleur
     // @ts-ignore
     const gradient = d3.scaleLinear().domain([Number(current_max_similarity), 100]).range(["red", "green"]);
 
@@ -228,12 +265,9 @@ export class OmegaMitabCard {
       <div class="text-center font-italic" style={{'margin-top': '3px'}}>Similarity</div>
     </div>;
 
-    // for each mitab line:
-    // [idLow, organism] ; [idHigh, organism] ; [interDetMethod]
+    // Pour chaque couple d'homologues 
     for (const [lowQ, highQ, couples] of this.data.misc.full_iterator()) {
-      // Recherche de la meilleure similarité pour low
-      // Conversion de base pour la similarité
-
+      // Détermine la couleur de fond de low et high
       const color: string = gradient(Number(lowQ.simPct));
       const color2: string = gradient(Number(highQ.simPct));
 
@@ -241,16 +275,24 @@ export class OmegaMitabCard {
         continue;
       }
 
+      // Si ils ne sont pas valides (et non demandés) on ignore
       if ((!lowQ.valid || !highQ.valid) && !this.showInvalid) {
         // Si c'est invalide et qu'on ne les veut pas
         continue;
       }
 
-      // Getting line 1
+      // On prend la première ligne MI Tab du couple, les informations
+      // que l'on souhaite récupérer sont les mêmes sur tts les lignes
       const line = couples[0];
-      // On construit la ligne pour chaque ligne mitab
+
+      if (line === undefined) {
+        continue;
+      }
+
+      // On détermine si l'id1 mitab correspond à low ou non
       const first_is_first = line.ids[0] === lowQ.template;
 
+      // Récupération taxid, interactants et méthode de détection expérimentale
       const tax_ids = line.taxid;
       const [taxid_1, taxid_2] = first_is_first ? tax_ids : tax_ids.reverse();
 
@@ -262,6 +304,8 @@ export class OmegaMitabCard {
       const tax_1 = (taxid_1 in this.taxonomy_cache ? this.taxonomy_cache[taxid_1] : "taxid:" + taxid_1);
       const tax_2 = (taxid_2 in this.taxonomy_cache ? this.taxonomy_cache[taxid_2] : "taxid:" + taxid_2);
 
+      // On pousse dans trs pour les valides, invalid_trs pour les discarded
+      // On pousse de l'HTML qui sera inséré
       (!lowQ.valid || !highQ.valid ? invalid_trs : trs).push(
         [
           <tr class={!lowQ.valid || !highQ.valid ? "table-secondary disabled" : ""} data-lowQSim={lowQ.simPct} data-highQSim={highQ.simPct}>
@@ -293,6 +337,7 @@ export class OmegaMitabCard {
       );
     }
 
+    // On trie en fonction du type de tri souhaité: Fonction
     const sort_function = (trA: TR_Array_Element, trB: TR_Array_Element) => {
       if (this.sortMethod.includes("LowQ")) {
         const lowqA = trA[1][0];
@@ -322,6 +367,7 @@ export class OmegaMitabCard {
     const sorted_trs = trs.sort(sort_function);
     const sorted_invalid_trs = invalid_trs.sort(sort_function);
     
+    // Retourne l'HTML final avec le contenu des tableaux insérés
     return (
       <div>
         <div class="container" style={{'margin-bottom': '20px'}}>
@@ -367,10 +413,12 @@ export class OmegaMitabCard {
     );
   }
 
+  /** Register "show discarded evidences" checkbox status */
   protected registerCheckboxInvalid(e: Event) {
     this.showInvalid = (e.currentTarget as HTMLInputElement).checked;
   }
 
+  /** Register sort method */
   protected makeSort(is_low_q: boolean) {
     if (is_low_q) {
       this.sortMethod = this.sortMethod.includes('desc') ? "ascLowQ" : "descLowQ";
@@ -380,6 +428,7 @@ export class OmegaMitabCard {
     }
   }
 
+  /** HTML message for no link loaded */
   protected noLoadMessage() {
     return (
       <div>
@@ -391,6 +440,7 @@ export class OmegaMitabCard {
     );
   }
 
+  /** HTML message for MI Tab informations not availables */
   protected noMitab() {
     return (
       <div>
@@ -402,14 +452,17 @@ export class OmegaMitabCard {
     );
   }
 
+  /** Show or hide history. */
   protected toggleHistory() {
     this.history_shown = !this.history_shown;
     this.hoverOff.emit();
   }
 
+  /** Generate HTML for history */
   protected historyList() {
     const elements = [];
 
+    // Each history element is a <li> element
     for (const prot of this.history) {
       elements.push(<li class={"list-group-item pointer-no-select" + (prot === this.data ? " font-weight-bold" : "")}
         onMouseOver={() => this.hoverOn.emit(prot)} 
@@ -418,6 +471,7 @@ export class OmegaMitabCard {
       >{prot.source.id + " - " + prot.target.id}</li>);
     }
 
+    // Last pushed should be the first in the list
     elements.reverse();
 
     return (
