@@ -146,31 +146,77 @@ export namespace Components {
   interface OmegaReset {}
   interface OmegaSearch {}
   interface OmegaTabs {
+    /**
+    * Focus a specific tab.
+    * @param tab Tab name
+    */
     'goToTab': (tab: string) => Promise<void>;
   }
   interface OmegaTaxo {
+    /**
+    * Get the actual loaded data in the tree instance.
+    */
     'getData': () => Promise<TreeLike[]>;
+    /**
+    * Get the number of selected nodes.
+    */
     'selectedNumber': (bottom?: boolean) => Promise<number>;
+    /**
+    * Register new data inside the tree, via a API response (SubNode).
+    */
     'setData': (d: SubNode) => Promise<void>;
+    /**
+    * Unset currently loaded data.
+    */
     'unsetData': () => Promise<void>;
   }
   interface OmegaTrim {
+    /**
+    * Currently stored coverage (in stringified percentage)
+    */
     'coverage': string;
+    /**
+    * Currently stored e-value (in stringified positive power of 10)
+    */
     'e_value': string;
+    /**
+    * Minimal values for inputs.
+    */
     'fix_at'?: {
       identity?: string,
       coverage?: string,
       similarity?: string,
       e_value?: string
     };
+    /**
+    * Currently stored identity (in stringified percentage)
+    */
     'identity': string;
+    /**
+    * Currently stored similarity (in stringified percentage)
+    */
     'similarity': string;
   }
   interface OmegaUniprotCard {
+    /**
+    * Save the current node (unwrapped, when loaded).
+    */
     'data': UniprotProtein;
+    /**
+    * True if an error has been detected.
+    */
     'error_mode': boolean;
+    /**
+    * Close the modal.
+    */
     'hide': () => Promise<void>;
+    /**
+    * Makes the card in preload mode.
+    */
     'preload': () => Promise<void>;
+    /**
+    * Show the modal.
+    */
     'show': () => Promise<void>;
   }
 }
@@ -351,7 +397,7 @@ declare namespace LocalJSX {
     /**
     * Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs
     */
-    'onOmega-graph.rebuild_taxo'?: (event: CustomEvent<string[]>) => void;
+    'onOmega-graph.rebuild-taxo'?: (event: CustomEvent<string[]>) => void;
     /**
     * Specie representated by the graph
     */
@@ -405,32 +451,71 @@ declare namespace LocalJSX {
     'onOmega-reheat.reheat'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaReset extends JSXBase.HTMLAttributes<HTMLOmegaResetElement> {
+    /**
+    * Fires when user ask for a graph reset.
+    */
     'onOmega-reset.reset'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaSearch extends JSXBase.HTMLAttributes<HTMLOmegaSearchElement> {
+    /**
+    * Fires when the user select nodes to highlight (TODO)
+    */
     'onOmega-search.search'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaTabs extends JSXBase.HTMLAttributes<HTMLOmegaTabsElement> {}
   interface OmegaTaxo extends JSXBase.HTMLAttributes<HTMLOmegaTaxoElement> {
+    /**
+    * Fires when a trim by taxonomy IDs is asked.
+    */
     'onOmega-taxo.trim'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaTrim extends JSXBase.HTMLAttributes<HTMLOmegaTrimElement> {
+    /**
+    * Currently stored coverage (in stringified percentage)
+    */
     'coverage'?: string;
+    /**
+    * Currently stored e-value (in stringified positive power of 10)
+    */
     'e_value'?: string;
+    /**
+    * Minimal values for inputs.
+    */
     'fix_at'?: {
       identity?: string,
       coverage?: string,
       similarity?: string,
       e_value?: string
     };
+    /**
+    * Currently stored identity (in stringified percentage)
+    */
     'identity'?: string;
+    /**
+    * Fires when a input value changes.
+    */
     'onOmega-trim.property-change'?: (event: CustomEvent<TrimProperties>) => void;
+    /**
+    * Currently stored similarity (in stringified percentage)
+    */
     'similarity'?: string;
   }
   interface OmegaUniprotCard extends JSXBase.HTMLAttributes<HTMLOmegaUniprotCardElement> {
+    /**
+    * Save the current node (unwrapped, when loaded).
+    */
     'data'?: UniprotProtein;
+    /**
+    * True if an error has been detected.
+    */
     'error_mode'?: boolean;
+    /**
+    * Fires when node is unhovered in the history
+    */
     'onOmega-uniprot-card.hover-off'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when node is hovered in the history
+    */
     'onOmega-uniprot-card.hover-on'?: (event: CustomEvent<string>) => void;
   }
 

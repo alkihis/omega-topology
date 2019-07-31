@@ -4,6 +4,11 @@ import { BASE_FIXES } from '../../utils/utils';
 
 const original_fixed_at = BASE_FIXES;
 
+/**
+ * Component used to trim the current graph using the homology parameters.
+ * 
+ * Available parameters are: similarity, coverage, identity and e-value.
+ */
 @Component({
   tag: "omega-trim",
   styleUrl: 'omega-trim.css',
@@ -12,15 +17,19 @@ const original_fixed_at = BASE_FIXES;
 export class OmegaTrim {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-trim";
-
+  /** Currently stored identity (in stringified percentage) */
   @Prop() identity: string;
+  /** Currently stored coverage (in stringified percentage) */
   @Prop() coverage: string;
+  /** Currently stored similarity (in stringified percentage) */
   @Prop() similarity: string;
+  /** Currently stored e-value (in stringified positive power of 10) */
   @Prop() e_value: string;
 
+  /** Register if the use has made a reheat (block trimming settings). */
   @State() fixed_by_user = false;
 
+  /** Minimal values for inputs. */
   @Prop() fix_at?: {
     identity?: string,
     coverage?: string,
@@ -28,10 +37,15 @@ export class OmegaTrim {
     e_value?: string
   } = original_fixed_at;
 
+  /** Fires when a input value changes. */
   @Event({
     eventName: "omega-trim.property-change"
   }) propChange: EventEmitter<TrimProperties>;
 
+  /** Listen for a graph reset.
+   * 
+   * Reallow original fixed values, set input values to minimum and disable fixed.
+   */
   @Listen('omega-reset.reset', { target: 'window' })
   protected reallow() {
     this.fix_at = original_fixed_at;
@@ -45,12 +59,14 @@ export class OmegaTrim {
     }, 30);
   }
 
+  /** Listen for reheat. Block minimum values to current values. */
   @Listen('omega-reheat.reheat', { target: 'window' })
   protected manuallyBlock() {
     this.fix_at = { identity: this.identity, coverage: this.coverage, similarity: this.similarity, e_value: this.e_value };
     this.fixed_by_user = true;
   }
 
+  /** E-value converter, if the e-value is set explicitly. */
   @Watch('e_value')
   set_e_value(v: string) {
     if (Number(v) < 1 && Number(v) > 0) {
@@ -85,16 +101,14 @@ export class OmegaTrim {
     this.e_value = (event.target as HTMLInputElement).value;
   }
 
+  /** Converter for internal e-value number => real e-value */
   protected convertEValue() {
     return 10 ** -Number(this.e_value);
   }
 
+  /** Fires the property-change event. */
   emitChange() {
     this.propChange.emit({ identity: Number(this.identity), e_value: this.convertEValue(), coverage: Number(this.coverage), similarity: Number(this.similarity) });
-  }
-
-  toggleVision() {
-    this.el.classList.toggle('hide-elements');
   }
 
   /**

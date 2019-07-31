@@ -593,6 +593,10 @@ export class OmegaGraph {
 
     Animator.cancelAll();
 
+    if (data.nodes.length === 0 || data.nodes[0].__threeObj === undefined) {
+      return;
+    }
+
     for (const node of data.nodes) {
       const node_material = node.__threeObj.material as MeshLambertMaterial;
 

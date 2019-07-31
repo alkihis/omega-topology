@@ -2,6 +2,13 @@ import { Component, h, Prop, Listen, Element, Method, State, Watch, Event, Event
 import { UniprotProtein } from 'omega-topology-fullstack/build/UniprotContainer';
 import { JSXBase } from '@stencil/core/internal';
 
+/**
+ * Show node information.
+ * 
+ * Present protein data, fetched from UniProt.
+ * 
+ * Make use of omega-topology-uniprot µ-service.
+ */
 @Component({
   tag: "omega-uniprot-card",
   styleUrl: 'omega-uniprot-card.css',
@@ -10,28 +17,35 @@ import { JSXBase } from '@stencil/core/internal';
 export class OmegaUniprotCard {
   @Element() el: HTMLElement;
 
+  /** True if the card is loading */
   @State()
   protected in_preload = false;
 
+  /** True if history is visible */
   @State()
   protected history_shown = false;
 
+  /** True if an error has been detected. */
   @Prop() error_mode = false;
 
+  /** Nodes presents in history (including actual node) */
   @State()
   protected history: UniprotProtein[] = [];
 
+  /** Fires when node is hovered in the history */
   @Event({
     eventName: 'omega-uniprot-card.hover-on'
   }) hoverOn: EventEmitter<string>;
   
+  /** Fires when node is unhovered in the history */
   @Event({
     eventName: 'omega-uniprot-card.hover-off'
   }) hoverOff: EventEmitter<void>;
 
-  protected in_load = undefined;
+  /** Save the current node (inside a Promise, could be in load). */
   protected last_loaded: Promise<UniprotProtein>;
 
+  /** Check if the modal should be closed. Takes a MouseEvent in argument. If the modal should be closed, close it. */
   protected readonly close_fn = (e: Event) => {
     let element = e.target as HTMLElement;
 
@@ -48,47 +62,60 @@ export class OmegaUniprotCard {
     this.hide();
   };
 
+  /** Save the current node (unwrapped, when loaded). */
   @Prop() data: UniprotProtein;
 
+  /** Makes the card in preload mode. */
   @Method()
   async preload() {
     this.in_preload = true;
     this.show();
   }
 
+  /** Triggers when omega-graph give a protein (in fact, it give a `Promise`), try to load it. */
   @Listen('omega-graph.load-protein', { target: 'window' })
   async loadProteinData(e: CustomEvent<Promise<UniprotProtein>> | Promise<UniprotProtein>) {
     if (e instanceof CustomEvent) {
       e = e.detail;
     }
 
+    // Remove close event listener
     window.removeEventListener('click', this.close_fn);
 
     // Disable history
     this.closeHistory();
+    // Make history hidden
     this.history_shown = false;
+    // Emit hoveroff history event, in case of
     this.hoverOff.emit();
 
+    // Empty current data
     this.data = undefined;
+    // Show preloader
     this.in_preload = true;
+    // Hide possible error 
     this.error_mode = false;
+    // Save the promise
     this.last_loaded = e;
     this.show();
 
     let data: UniprotProtein;
     try {
-      data = await e;
+      // Try to load data (max 20 secondes authorized)
+      data = await Promise.race([ e, new Promise((_, reject) => setTimeout(reject, 20000)) ]) as UniprotProtein;
       this.addInHistory(data);
 
       if (this.last_loaded === e) {
         this.data = data;
       }
     } catch (c) {
+      // Otherwise, show error mode
       this.error_mode = true;
       this.in_preload = false;
     }
   }
 
+  /** Disable preload when data is set. */
   @Watch('data')
   setData(d: UniprotProtein) {
     if (d) {
@@ -96,12 +123,14 @@ export class OmegaUniprotCard {
     }
   }
 
+  /** Listen for graph rebuild, to clear history. */
   @Listen('omega-graph.rebuild', { target: 'window' })
   resetHistory() {
     if (this.history.length !== 0)
       this.closeHistory(true);
   }
 
+  /** Show the modal. */
   @Method()
   async show() {
     this.el.querySelector('[omega-uniprot-card-base]').classList.remove('hidden');
@@ -111,6 +140,7 @@ export class OmegaUniprotCard {
     }, 100);
   }
 
+  /** Close the modal. */
   @Method()
   async hide() {
     this.el.querySelector('[omega-uniprot-card-base]').classList.add('hidden');
@@ -118,6 +148,7 @@ export class OmegaUniprotCard {
     this.closeHistory();
   }
 
+  /** Close the history modal. */
   protected closeHistory(reset = false) {
     if (reset)
       this.history = [];
@@ -127,6 +158,7 @@ export class OmegaUniprotCard {
     this.hoverOff.emit();
   }
 
+  /** Add a node into the history. */
   protected addInHistory(p: UniprotProtein) {
     this.history = [...this.history.filter(e => e.accession !== p.accession), p];
 
@@ -135,6 +167,7 @@ export class OmegaUniprotCard {
     }
   }
 
+  /** Generate the HTML body of the card */
   protected generateUniprotHTML() {
     const prot = this.data.protein;
     const name = prot.recommendedName ?
@@ -188,11 +221,13 @@ export class OmegaUniprotCard {
     );
   }
 
+  /** Macro for auto copy element text. */
   protected copyContent(element: HTMLTextAreaElement) {
     element.select();
     document.execCommand("copy");
   }
 
+  /** HTML message for no link loaded */
   protected noLoadMessage() {
     return (
       <div>
@@ -204,6 +239,7 @@ export class OmegaUniprotCard {
     );
   }
 
+  /** Error message when await fails. */
   protected errorMessage() {
     return (
       <div>
@@ -215,11 +251,13 @@ export class OmegaUniprotCard {
     );
   }
 
+  /** Show or hide history. */
   protected toggleHistory() {
     this.history_shown = !this.history_shown;
     this.hoverOff.emit();
   }
 
+  /** Generate HTML for history */
   protected historyList() {
     const elements: JSXBase.LiHTMLAttributes<HTMLLIElement>[] = [];
 
@@ -231,6 +269,7 @@ export class OmegaUniprotCard {
       >{prot.accession}</li>);
     }
 
+    // Last pushed should be the first in the list
     elements.reverse();
 
     return (
