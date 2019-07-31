@@ -7,9 +7,9 @@
 
 ## Events
 
-| Event                  | Description | Type                |
-| ---------------------- | ----------- | ------------------- |
-| `omega-artefact.reset` |             | `CustomEvent<void>` |
+| Event                  | Description                                                                 | Type                |
+| ---------------------- | --------------------------------------------------------------------------- | ------------------- |
+| `omega-artefact.reset` | Fires when omega-artefact needs to reset the graph after links importatiob. | `CustomEvent<void>` |
 
 
 ----------------------------------------------

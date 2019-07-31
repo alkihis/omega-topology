@@ -25,7 +25,7 @@
 | `omega-graph.prune-remove`   | Fires when a node is unselected                                         | `CustomEvent<string>`                                      |
 | `omega-graph.prune-reset`    | Fires when button "unselect all" is clicked                             | `CustomEvent<void>`                                        |
 | `omega-graph.rebuild`        | Fires when the graph is refreshed                                       | `CustomEvent<void>`                                        |
-| `omega-graph.rebuild_onto`   | Fires when ontology tree needs to be refreshed. Data: MI IDs            | `CustomEvent<string[]>`                                    |
+| `omega-graph.rebuild-onto`   | Fires when ontology tree needs to be refreshed. Data: MI IDs            | `CustomEvent<string[]>`                                    |
 | `omega-graph.rebuild_taxo`   | Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs     | `CustomEvent<string[]>`                                    |
 
 

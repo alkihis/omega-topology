@@ -7,11 +7,11 @@
 
 ## Events
 
-| Event                       | Description | Type                |
-| --------------------------- | ----------- | ------------------- |
-| `omega-prune.end-selection` |             | `CustomEvent<void>` |
-| `omega-prune.selection`     |             | `CustomEvent<void>` |
-| `omega-prune.unselect-all`  |             | `CustomEvent<void>` |
+| Event                       | Description                                         | Type                |
+| --------------------------- | --------------------------------------------------- | ------------------- |
+| `omega-prune.end-selection` | Fires when user end selection mode.                 | `CustomEvent<void>` |
+| `omega-prune.selection`     | Fires when user start selection mode.               | `CustomEvent<void>` |
+| `omega-prune.unselect-all`  | Fires when user ask a global unselect of all nodes. | `CustomEvent<void>` |
 
 
 ## Dependencies

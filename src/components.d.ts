@@ -106,15 +106,39 @@ export namespace Components {
   interface OmegaGraphInfos {}
   interface OmegaImport {}
   interface OmegaMitabCard {
+    /**
+    * Actual link data.
+    */
     'data': D3Link;
+    /**
+    * Close the modal.
+    */
     'hide': () => Promise<void>;
+    /**
+    * Makes the card in preload mode.
+    */
     'preload': () => Promise<void>;
+    /**
+    * Show the modal.
+    */
     'show': () => Promise<void>;
   }
   interface OmegaOnto {
+    /**
+    * Get the actual loaded data in the tree instance.
+    */
     'getData': () => Promise<TreeLike[]>;
-    'selectedNumber': (bottom?: boolean) => Promise<number>;
+    /**
+    * Get the number of selected nodes.
+    */
+    'selectedNumber': (bottom_only?: boolean) => Promise<number>;
+    /**
+    * Register new data inside the tree, via a API response (SubNode).
+    */
     'setData': (d: SubNode) => Promise<void>;
+    /**
+    * Unset currently loaded data.
+    */
     'unsetData': () => Promise<void>;
   }
   interface OmegaPrune {}
@@ -264,11 +288,23 @@ declare global {
 
 declare namespace LocalJSX {
   interface OmegaArtefact extends JSXBase.HTMLAttributes<HTMLOmegaArtefactElement> {
+    /**
+    * Fires when omega-artefact needs to reset the graph after links importatiob.
+    */
     'onOmega-artefact.reset'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaDownload extends JSXBase.HTMLAttributes<HTMLOmegaDownloadElement> {
+    /**
+    * Fires when user ask a download as image.
+    */
     'onOmega-download.download'?: (event: CustomEvent<string>) => void;
+    /**
+    * Fires when user ask a download as tabular file.
+    */
     'onOmega-download.download-as-file'?: (event: CustomEvent<string>) => void;
+    /**
+    * Fires when user ask a download as JSON.
+    */
     'onOmega-download.download-as-json'?: (event: CustomEvent<string>) => void;
   }
   interface OmegaGraph extends JSXBase.HTMLAttributes<HTMLOmegaGraphElement> {
@@ -311,7 +347,7 @@ declare namespace LocalJSX {
     /**
     * Fires when ontology tree needs to be refreshed. Data: MI IDs
     */
-    'onOmega-graph.rebuild_onto'?: (event: CustomEvent<string[]>) => void;
+    'onOmega-graph.rebuild-onto'?: (event: CustomEvent<string[]>) => void;
     /**
     * Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs
     */
@@ -323,22 +359,49 @@ declare namespace LocalJSX {
   }
   interface OmegaGraphInfos extends JSXBase.HTMLAttributes<HTMLOmegaGraphInfosElement> {}
   interface OmegaImport extends JSXBase.HTMLAttributes<HTMLOmegaImportElement> {
+    /**
+    * Fires when a file import started. (order a reset)
+    */
     'onOmega-import.import'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaMitabCard extends JSXBase.HTMLAttributes<HTMLOmegaMitabCardElement> {
+    /**
+    * Actual link data.
+    */
     'data'?: D3Link;
+    /**
+    * Fires when link becomes not hovered in the history
+    */
     'onOmega-mitab-card.hover-off'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when link is hovered in the history
+    */
     'onOmega-mitab-card.hover-on'?: (event: CustomEvent<D3Link>) => void;
   }
   interface OmegaOnto extends JSXBase.HTMLAttributes<HTMLOmegaOntoElement> {
+    /**
+    * Fires when a trim by ontology terms is asked.
+    */
     'onOmega-onto.trim'?: (event: CustomEvent<string[]>) => void;
   }
   interface OmegaPrune extends JSXBase.HTMLAttributes<HTMLOmegaPruneElement> {
+    /**
+    * Fires when user end selection mode.
+    */
     'onOmega-prune.end-selection'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when user start selection mode.
+    */
     'onOmega-prune.selection'?: (event: CustomEvent<void>) => void;
+    /**
+    * Fires when user ask a global unselect of all nodes.
+    */
     'onOmega-prune.unselect-all'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaReheat extends JSXBase.HTMLAttributes<HTMLOmegaReheatElement> {
+    /**
+    * Fires when use decides to start a reheat.
+    */
     'onOmega-reheat.reheat'?: (event: CustomEvent<void>) => void;
   }
   interface OmegaReset extends JSXBase.HTMLAttributes<HTMLOmegaResetElement> {

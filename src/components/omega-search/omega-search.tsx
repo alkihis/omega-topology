@@ -2,7 +2,11 @@ import { Component, h, Element, Event, EventEmitter, State } from '@stencil/core
 import FrontTopology from '../../utils/FrontTopology';
 import { TinyProtein } from 'omega-topology-fullstack';
 
-// Composant de base pour la recherche (todo !)
+/**
+ * Component used to search nodes inside the graph, with annotation informations.
+ * 
+ * This component is not properly finished, TODO !
+ */
 @Component({
   tag: "omega-search",
   styleUrl: 'omega-search.css',
@@ -11,8 +15,7 @@ import { TinyProtein } from 'omega-topology-fullstack';
 export class OmegaSearch {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-search";
-
+  /** Fires when the user select nodes to highlight (TODO) */
   @Event({
     eventName: "omega-search.search"
   }) search: EventEmitter<string[]>;
@@ -21,11 +24,14 @@ export class OmegaSearch {
     this.search.emit(nodes);
   }
 
+  /** Matched proteins for query. */
   @State()
   protected matched_objects: TinyProtein[] = [];
 
+  /** Used to smooth the search. */
   protected last_timeout = 0;
 
+  /** Search function. Takes a oninput event. */
   searchInAnnots(e: Event) {
     const t = e.target as HTMLInputElement;
 
@@ -39,13 +45,16 @@ export class OmegaSearch {
       return;
     }
 
+    // Search only if the input hasn't changed in 200 ms
     this.last_timeout = setTimeout(() => {
-      const matching = FrontTopology.topo.findProteinsInGraphByAnnotation(t.value);
+      // maybe switch to .advancedSearchInGraphByAnnotation in order to show why the protein matched
+      const matching = FrontTopology.topo.searchInGraphByAnnotation(t.value);
   
       this.matched_objects = matching.map(p => FrontTopology.topo.uniprot_container.getTiny(p));
     }, 200) as unknown as number;
   }
 
+  /** HTML search results generator. */
   protected generateMatched() {
     if (this.matched_objects.length === 0) {
       return;
@@ -60,6 +69,7 @@ export class OmegaSearch {
     );
   }
 
+  /** Quick access to container used to put search content. */
   get search_container() {
     return this.el.querySelector('.search-body-container');
   }

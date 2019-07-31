@@ -1,5 +1,10 @@
 import { Component, h, Element, Event, EventEmitter } from '@stencil/core';
 
+/**
+ * Button to reset the graph to its initial state.
+ * 
+ * Open a Bootstrap modal.
+ */
 @Component({
   tag: "omega-reset",
   styleUrl: 'omega-reset.css',
@@ -8,8 +13,7 @@ import { Component, h, Element, Event, EventEmitter } from '@stencil/core';
 export class OmegaReset {
   @Element() el: HTMLElement;
 
-  public static readonly tag = "omega-reset";
-
+  /** Fires when user ask for a graph reset. */
   @Event({
     eventName: "omega-reset.reset"
   }) reheat: EventEmitter<void>;

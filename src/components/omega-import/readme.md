@@ -7,9 +7,9 @@
 
 ## Events
 
-| Event                 | Description | Type                |
-| --------------------- | ----------- | ------------------- |
-| `omega-import.import` |             | `CustomEvent<void>` |
+| Event                 | Description                                       | Type                |
+| --------------------- | ------------------------------------------------- | ------------------- |
+| `omega-import.import` | Fires when a file import started. (order a reset) | `CustomEvent<void>` |
 
 
 ----------------------------------------------
