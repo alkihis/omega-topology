@@ -1,38 +1,52 @@
 import { Component, h, Element, Host, Listen, State, Method } from '@stencil/core';
 
+/**
+ * Encapsulate the trimming components, into visual tabs.
+ */
 @Component({
   tag: "omega-tabs",
   styleUrl: 'omega-tabs.css',
   shadow: false
 })
-export class OmegaTrim {
+export class OmegaTabs {
   @Element() el: HTMLElement;
 
+  /** Register if UniProt data is loaded or not. */
   @State() uniprot_loaded = false;
 
-  public static readonly tag = "omega-tabs";
-
+  /** Listen for UniProt data load. */
   @Listen('FrontTopology.uniprot-downloaded', { target: 'window' })
   loadUniprot() {
     this.uniprot_loaded = true;
   }
 
+  /**
+   * Focus a specific tab.
+   * 
+   * @param tab Tab name
+   */
   @Method()
   async goToTab(tab: string) {
     return this._goToTab(tab);
   }
 
+  /** Handle a click to a tab. */
   protected click(e: Event) {
     this._goToTab((e.target as HTMLAnchorElement).dataset.related);
   }
 
+  /** Internal `.goToTab()` method */
   protected _goToTab(related_to: string) {
+    // Hide all tabs and card.
     this.hideAll();
 
+    // Fetch the relative tab
     const related_e = this.el.querySelector(`ul [data-related="${related_to}"]`) as HTMLElement;
 
+    // Check if the tab is already active
     const is_active = related_e.classList.contains('active');
 
+    // Remove every active class
     this.removeActive();
 
     // Si c'est pas actif, on montre (sinon il sera caché)
@@ -41,6 +55,7 @@ export class OmegaTrim {
     }    
   }
 
+  /** Hide the side card. */
   protected hideAll() {
     this.el.querySelectorAll('[tabs-container] .tab-target').forEach(e => e.classList.add('hide'));
     this.el.querySelector('[tabs-container] [hide-container]').classList.add('force-hide');
@@ -48,10 +63,12 @@ export class OmegaTrim {
     (this.el.querySelector(`[tabs-container]`) as HTMLElement).style.padding = '0';
   }
 
+  /** Remove active class on all tabs. */
   protected removeActive() {
     this.el.querySelectorAll(`ul .active`).forEach(e => e.classList.remove('active'));
   }
 
+  /** Make a specific tab visible (enable active class and focus it in the tab). */
   protected makeActive(element: string) {
     const related_e = this.el.querySelector(`ul [data-related="${element}"]`) as HTMLElement;
     const tab_content_e = this.el.querySelector(`[tabs-container] [data-name="${element}"]`) as HTMLElement;
@@ -66,6 +83,11 @@ export class OmegaTrim {
     this.el.querySelector('[tabs-container] [hide-container] i').innerHTML = "arrow_left";
   }
 
+  /** 
+   * Toggle the side panel.
+   * 
+   * If a prune begin, toggle the side panel (to hide it). 
+   */
   @Listen('omega-prune.selection')
   protected hideOrShow() {
     const i = this.el.querySelector('[tabs-container] [hide-container] i') as HTMLElement;
@@ -83,6 +105,9 @@ export class OmegaTrim {
     }
   }
 
+  /**
+   * If the graph reset, reset the tabs (make all hidden and empty go-chart).
+   */
   @Listen('omega-graph.complete-reset', { target: 'window' })
   resetTabs() {
     this.hideAll();
@@ -90,6 +115,7 @@ export class OmegaTrim {
     this.el.querySelector('go-chart').data = undefined;
   }
 
+  /** Current active tab. */
   get last_active() {
     return (this.el.querySelector('.tab-target:not(.hide)') as HTMLElement).dataset.name;
   }

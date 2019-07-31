@@ -13,7 +13,7 @@ import FrontTopology from '../../utils/FrontTopology';
   styleUrl: 'omega-onto.css',
   shadow: false
 })
-export class OmegaTaxo {
+export class OmegaOnto {
   @Element() el: HTMLElement;
 
   /** True if MI Tab data is ready. */

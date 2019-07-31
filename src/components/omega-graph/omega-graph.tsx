@@ -118,7 +118,7 @@ export class OmegaGraph {
 
   /** Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs */
   @Event({
-    eventName: "omega-graph.rebuild_taxo"
+    eventName: "omega-graph.rebuild-taxo"
   }) buildTaxoTree: EventEmitter<string[]>;
 
   /** Fires when ontology tree needs to be refreshed. Data: MI IDs */
