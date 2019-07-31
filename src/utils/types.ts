@@ -13,17 +13,7 @@ export interface JSGraph {
     edges: {
         v: string;
         w: string;
-        value: {
-            lowQueryParam: {
-                valid: true;
-                data: string[];
-            }[];
-            highQueryParam: {
-                valid: true;
-                data: string[];
-            }[];
-            visible: boolean;
-        }
+        value: HoParameterSet
     }[];
 }
 

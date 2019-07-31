@@ -6,6 +6,20 @@
 
 This projet uses `Stencil`. Report to the Stencil's documentation to see details about the components API.
 
+## Needed micro-services
+Before we can get started, you must have a bunch of micro-services running in the webserver.
+
+- CouchDB database
+- `omegalomodb`, the request agregator
+- `omega-topology-service`, the skeleton builder
+- `omega-topology-mitab-service`, the MI Tab lines getter
+- `omega-topology-uniprot`, the UniProt data fetcher
+- `omega-topology-MIontology`, the MI IDs resolver
+- `omega-topology-taxonomy`, the tax IDs resolver
+
+To configure the services, read their own documentation.
+
+They should be on the same server that the webserver is. If you keep the default ports, ports should be correclty configured in `src/utils.ts`. Change them if needed.
 
 ## Getting Started
 
@@ -30,7 +44,6 @@ npm run build
 ```
 
 Its output will be in the `www` folder.
-
 
 ## Project structure
 

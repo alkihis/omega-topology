@@ -18,19 +18,19 @@ export class OmegaTrim {
   @Element() el: HTMLElement;
 
   /** Currently stored identity (in stringified percentage) */
-  @Prop() identity: string;
+  @Prop({ mutable: true }) identity: string;
   /** Currently stored coverage (in stringified percentage) */
-  @Prop() coverage: string;
+  @Prop({ mutable: true }) coverage: string;
   /** Currently stored similarity (in stringified percentage) */
-  @Prop() similarity: string;
+  @Prop({ mutable: true }) similarity: string;
   /** Currently stored e-value (in stringified positive power of 10) */
-  @Prop() e_value: string;
+  @Prop({ mutable: true }) e_value: string;
 
   /** Register if the use has made a reheat (block trimming settings). */
   @State() fixed_by_user = false;
 
   /** Minimal values for inputs. */
-  @Prop() fix_at?: {
+  @Prop({ mutable: true }) fix_at?: {
     identity?: string,
     coverage?: string,
     similarity?: string,
