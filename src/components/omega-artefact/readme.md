@@ -1,5 +1,19 @@
 # omega-artefact
 
+## What's this ?
+
+This component is the interface to add "artefactual" edges to the graph.
+
+An artefactual edge is a link that is not registred in the database.
+
+Users can register their own edges using a TSV file, under the form:
+
+```
+ID_1    ID_2    MI_ID
+```
+
+As those interactions aren't registred into the database, a simple page reload will erase the added data.
+
 
 
 <!-- Auto Generated Below -->

@@ -1,6 +1,44 @@
-# my-component
+# omega-graph
+
+## What's this ?
+
+This component is the master of the website.
+
+It role is to show a 3D Graph representing the interolog network.
+
+It handle a large number of events like the graph reset, reheat, and node selection, and transmit requests to the `FrontTopology` singleton.
+
+## Initialisation
+
+By default, the graph load the specie `r6`.
+
+**Warning**: This component is in charge to initialize `FrontTopology` with the right specie. If specie change, graph will disappear and load a brand new specie !
+
+This component is also in charge to inform the user, at the start of the website, of the UniProt data download status, and remove the preloader of the page.
+
+## Usage
+
+Many methods are presents in this component in order to get nodes informations, highlight and more. Check it out in the [Methods](#methods) section !
+
+Otherwise, many of its usage goes through event listening.
+Take a look to the listeners in the code (section `LISTENERS`), each event name is inside the `@Event()` decorator and fully documented.
+
+This component emit a huge bunch of multiple events when things occurs. Check it out what in the [Events](#events) section.
 
 
+## Questions
+
+### What's the difference between, refresh, reheat and reset ?
+
+- A `refresh` is when a trim occurs. The internal data of the graph does not change, it change only the currenlty visible nodes.
+
+- A `reheat` is to re-enable force engine only for visible nodes. This implies to destroy invisible nodes from the graph data. For this reason, after a reheat, the minimum value of the trimming parameters will be locked at their current value during the reheat.
+
+- A `reset` is a complete destruction of graph, and a regeneration from the internal interolog network stored in `FrontTopology`. All filters will be lost and hidden nodes will be visible again. It can reverse a `reheat`.
+
+### Why this component is not in charge of the real network ?
+
+Too many components need network informations, and all of those infos are not useful for `omega-graph`. For this reason, a global singleton appear to be a good solution. So, all the network data logic is stored inside the `FrontTopology` object.
 
 <!-- Auto Generated Below -->
 

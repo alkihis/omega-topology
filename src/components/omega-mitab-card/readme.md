@@ -1,6 +1,16 @@
 # omega-mitab-card
 
+## What's this ?
 
+This component show link information to the user.
+
+Presented informations are **homology support**, **interaction detection methods**, **interactors identifiers**, **interaction species** and the **percentage of similiarity**.
+
+It need interaction data (MI Tab) to be downloaded.
+
+In order to present taxonomy information and MI IDs real term, it fetch data from two micro-service using `OntologyTermsCache` and `TaxonomyTermsCache`.
+
+The card contains a history of visited links (maximum 5), and hover a link will highlight it into the graph.
 
 <!-- Auto Generated Below -->
 

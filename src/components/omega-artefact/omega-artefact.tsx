@@ -15,7 +15,7 @@ export class OmegaArtefact {
   @Element() el: HTMLElement;
 
   /**
-   * Fires when omega-artefact needs to reset the graph after links importatiob.
+   * Fires when omega-artefact needs to reset the graph after links importation.
    */
   @Event({
     eventName: "omega-artefact.reset"

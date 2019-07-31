@@ -335,7 +335,7 @@ declare global {
 declare namespace LocalJSX {
   interface OmegaArtefact extends JSXBase.HTMLAttributes<HTMLOmegaArtefactElement> {
     /**
-    * Fires when omega-artefact needs to reset the graph after links importatiob.
+    * Fires when omega-artefact needs to reset the graph after links importation.
     */
     'onOmega-artefact.reset'?: (event: CustomEvent<void>) => void;
   }
