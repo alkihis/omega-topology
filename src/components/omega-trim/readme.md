@@ -1,5 +1,22 @@
-# my-component
+# omega-trim
 
+## What's this ?
+
+This component is used to apply filters to the homology evidences inside the interolog network.
+
+It handle and store those settings:
+- `identity` (in percentage)
+- `similarity` (in percentage)
+- `coverage` (in percentage)
+- `e_value`
+
+All the settings can be changed programmatically using the property accessor.
+
+The base parameters for those settings are defined in `BASE_FIXES` object, inside the `utils.ts` file (don't forget to change it inside the `utils.sample.ts` too !).
+
+When a property change, the component emit a trim request handled by `omega-graph` component.
+
+The component automatically block minimum values to actual values when a graph `reheat` is made.
 
 
 <!-- Auto Generated Below -->

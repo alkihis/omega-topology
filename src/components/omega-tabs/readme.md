@@ -1,6 +1,12 @@
 # omega-tabs
 
+## What's this ?
 
+This component encapsulate all the trimming components inside tabs.
+
+Tabs will be visible at the top of the screen, and trimming components are presented in a side panel, in the top-left corner.
+
+You can trigger a tab change programmatically with `.goToTab()`.
 
 <!-- Auto Generated Below -->
 

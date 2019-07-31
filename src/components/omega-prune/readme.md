@@ -1,4 +1,12 @@
-# my-component
+# omega-prune
+
+## What's this ?
+
+This component helps user to select nodes, then prune the graph (use the select nodes as seeds).
+
+You can also select the maximum visible distance from seeds allowed.
+
+This component also integrate a `network-table`, a table used to display short informations about presents nodes in the graph, and allow to select them directly in the table. Informations displayed are **protein accession number**, **first gene name** and **number of edges connected to the node**.
 
 
 

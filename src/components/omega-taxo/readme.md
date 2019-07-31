@@ -1,5 +1,23 @@
 # omega-taxo
 
+## What's this ?
+
+This component is a taxonomy term selector.
+
+It encapsulate a `selectionnable-tree`, a tree where each node a selectable.
+
+Once MI Tab data are loaded, the corresponding tree for all the present taxons in graph (tax IDs) is asked to `omega-topology-taxonomy`, which returns a `SubNode` object. The object is computed and defined as data for the tree.
+
+User can select the species/taxons he wants to see, and click `Select taxons` to trim every link that don't have a interaction support detected in one of the selected taxons.
+
+If the user want to go back, a click to `Reset taxons` will cancel every taxonomy filter.
+
+Unselect all the nodes is equivalent to reset the methods with the appropriate button.
+
+Tree will reload at each trim or graph refresh, because the available taxons/specie in graph may have changed.
+
+Some methods are available to manipulate the tree data, check it out in the [Methods](#methods) section !
+
 
 
 <!-- Auto Generated Below -->
