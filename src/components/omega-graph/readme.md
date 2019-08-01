@@ -11,6 +11,7 @@ It handle a large number of events like the graph reset, reheat, and node select
 ## Initialisation
 
 By default, the graph load the specie `r6`.
+The specie to load is automatically determined at the component load, with the parameter `specie` of the URL's query string.
 
 **Warning**: This component is in charge to initialize `FrontTopology` with the right specie. If specie change, graph will disappear and load a brand new specie !
 

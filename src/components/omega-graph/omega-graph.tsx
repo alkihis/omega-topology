@@ -155,9 +155,13 @@ export class OmegaGraph {
 
   @Watch('specie')
   protected specieChange(specie: string, old: string) {
-    if (specie !== old) {
+    if (specie !== old && old) {
       // Attends que l'espèce soit modifiée puis recharge le graphe
-      setTimeout(this.load, 30);
+      setTimeout(() => { 
+        this.destroyCurrentGraph(true); 
+        FrontTopology.resetInstance(); 
+        this.load(true, true); 
+      }, 30);
     }
   }
 
@@ -384,6 +388,31 @@ export class OmegaGraph {
   /* --- INITIALIZATION --- */
 
   /**
+   * Properly initiate component specie with query string in URL.
+   */
+  componentWillLoad() {
+    // Remove possible tag, extract the query string (without the ?)
+    const url = window.location.href.split('#')[0].split('?')[1];
+
+    if (url) {
+      // If query string exists, split every parameter 
+      // and make a tuple [name, value] for each parameter
+      const splitted = url.split('&').map(e => e.split('=', 2));;
+      const parms_real: { [key: string]: string } = {};
+
+      // Register every tuple in a key => value object
+      for (const [key, value] of splitted) {
+        parms_real[key] = value;
+      }
+
+      // Check if specie exists
+      if ('specie' in parms_real) {
+        this.specie = parms_real.specie.toLocaleUpperCase();
+      }
+    }
+  }
+
+  /**
    * When the component starts. Do not call this method !
    */
   componentDidLoad() {
@@ -447,9 +476,16 @@ export class OmegaGraph {
       // Afficher un message d'erreur en position absolute.
       const fail_init = document.getElementById('__modal_fail_initialisation__');
 
+      const not_found = 'error' in e && e.error === "File not found";
+
       if (fail_init) {
         //@ts-ignore
         $(fail_init).modal({ keyboard: false, backdrop: 'static', show: true });
+
+        if (not_found)
+          $('#__modal_fail_initialisation_text__').text("The specie you're looking for does not have a pre-calculated interlog network available. You can request this specie to an administrator.");
+        else
+          $('#__modal_fail_initialisation_text__').text("Please refresh this page or try again later.")
       }
     }
     

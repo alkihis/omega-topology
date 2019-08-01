@@ -210,7 +210,7 @@ const FrontTopology = new class FrontTopology {
 
   /**
    * Rebuild UniProt data (with GO Chart and Network table)
-   * Graph must have been constructed !!
+   * Graph must have been constructed !
    * @param visible_only 
    */
   setupUniprotData(visible_only = true) {
