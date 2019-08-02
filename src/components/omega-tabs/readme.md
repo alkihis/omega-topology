@@ -15,7 +15,7 @@ You can trigger a tab change programmatically with `.goToTab()`.
 
 ### `goToTab(tab: string) => Promise<void>`
 
-
+Focus a specific tab.
 
 #### Returns
 

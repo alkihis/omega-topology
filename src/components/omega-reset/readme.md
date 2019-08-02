@@ -11,9 +11,9 @@ To know what a graph reset is, check `omega-graph`'s documentation.
 
 ## Events
 
-| Event               | Description | Type                |
-| ------------------- | ----------- | ------------------- |
-| `omega-reset.reset` |             | `CustomEvent<void>` |
+| Event               | Description                            | Type                |
+| ------------------- | -------------------------------------- | ------------------- |
+| `omega-reset.reset` | Fires when user ask for a graph reset. | `CustomEvent<void>` |
 
 
 ----------------------------------------------

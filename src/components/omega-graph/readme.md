@@ -65,7 +65,7 @@ Too many components need network informations, and all of those infos are not us
 | `omega-graph.prune-reset`    | Fires when button "unselect all" is clicked                             | `CustomEvent<void>`                                        |
 | `omega-graph.rebuild`        | Fires when the graph is refreshed                                       | `CustomEvent<void>`                                        |
 | `omega-graph.rebuild-onto`   | Fires when ontology tree needs to be refreshed. Data: MI IDs            | `CustomEvent<string[]>`                                    |
-| `omega-graph.rebuild_taxo`   | Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs     | `CustomEvent<string[]>`                                    |
+| `omega-graph.rebuild-taxo`   | Fires when taxonomy tree needs to be refreshed. Data: taxonomic IDs     | `CustomEvent<string[]>`                                    |
 
 
 ## Methods

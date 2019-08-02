@@ -16,25 +16,25 @@ The card contains a history of visited nodes (maximum 5), and hover a node will 
 
 ## Properties
 
-| Property     | Attribute    | Description | Type             | Default     |
-| ------------ | ------------ | ----------- | ---------------- | ----------- |
-| `data`       | --           |             | `UniprotProtein` | `undefined` |
-| `error_mode` | `error_mode` |             | `boolean`        | `false`     |
+| Property     | Attribute    | Description                                     | Type             | Default     |
+| ------------ | ------------ | ----------------------------------------------- | ---------------- | ----------- |
+| `data`       | --           | Save the current node (unwrapped, when loaded). | `UniprotProtein` | `undefined` |
+| `error_mode` | `error_mode` | True if an error has been detected.             | `boolean`        | `false`     |
 
 
 ## Events
 
-| Event                          | Description | Type                  |
-| ------------------------------ | ----------- | --------------------- |
-| `omega-uniprot-card.hover-off` |             | `CustomEvent<void>`   |
-| `omega-uniprot-card.hover-on`  |             | `CustomEvent<string>` |
+| Event                          | Description                                 | Type                  |
+| ------------------------------ | ------------------------------------------- | --------------------- |
+| `omega-uniprot-card.hover-off` | Fires when node is unhovered in the history | `CustomEvent<void>`   |
+| `omega-uniprot-card.hover-on`  | Fires when node is hovered in the history   | `CustomEvent<string>` |
 
 
 ## Methods
 
 ### `hide() => Promise<void>`
 
-
+Close the modal.
 
 #### Returns
 
@@ -44,7 +44,7 @@ Type: `Promise<void>`
 
 ### `preload() => Promise<void>`
 
-
+Makes the card in preload mode.
 
 #### Returns
 
@@ -54,7 +54,7 @@ Type: `Promise<void>`
 
 ### `show() => Promise<void>`
 
-
+Show the modal.
 
 #### Returns
 

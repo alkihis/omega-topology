@@ -23,7 +23,7 @@ As those interactions aren't registred into the database, a simple page reload w
 
 | Event                  | Description                                                                 | Type                |
 | ---------------------- | --------------------------------------------------------------------------- | ------------------- |
-| `omega-artefact.reset` | Fires when omega-artefact needs to reset the graph after links importatiob. | `CustomEvent<void>` |
+| `omega-artefact.reset` | Fires when omega-artefact needs to reset the graph after links importation. | `CustomEvent<void>` |
 
 
 ----------------------------------------------

@@ -11,9 +11,9 @@ This component is an helper for searching nodes inside the graph, using UniProt 
 
 ## Events
 
-| Event                 | Description | Type                    |
-| --------------------- | ----------- | ----------------------- |
-| `omega-search.search` |             | `CustomEvent<string[]>` |
+| Event                 | Description                                          | Type                    |
+| --------------------- | ---------------------------------------------------- | ----------------------- |
+| `omega-search.search` | Fires when the user select nodes to highlight (TODO) | `CustomEvent<string[]>` |
 
 
 ----------------------------------------------

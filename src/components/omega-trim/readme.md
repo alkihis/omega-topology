@@ -24,20 +24,20 @@ The component automatically block minimum values to actual values when a graph `
 
 ## Properties
 
-| Property     | Attribute    | Description | Type                                                                               | Default             |
-| ------------ | ------------ | ----------- | ---------------------------------------------------------------------------------- | ------------------- |
-| `coverage`   | `coverage`   |             | `string`                                                                           | `undefined`         |
-| `e_value`    | `e_value`    |             | `string`                                                                           | `undefined`         |
-| `fix_at`     | --           |             | `{ identity?: string; coverage?: string; similarity?: string; e_value?: string; }` | `original_fixed_at` |
-| `identity`   | `identity`   |             | `string`                                                                           | `undefined`         |
-| `similarity` | `similarity` |             | `string`                                                                           | `undefined`         |
+| Property     | Attribute    | Description                                                    | Type                                                                               | Default             |
+| ------------ | ------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------- |
+| `coverage`   | `coverage`   | Currently stored coverage (in stringified percentage)          | `string`                                                                           | `undefined`         |
+| `e_value`    | `e_value`    | Currently stored e-value (in stringified positive power of 10) | `string`                                                                           | `undefined`         |
+| `fix_at`     | --           | Minimal values for inputs.                                     | `{ identity?: string; coverage?: string; similarity?: string; e_value?: string; }` | `original_fixed_at` |
+| `identity`   | `identity`   | Currently stored identity (in stringified percentage)          | `string`                                                                           | `undefined`         |
+| `similarity` | `similarity` | Currently stored similarity (in stringified percentage)        | `string`                                                                           | `undefined`         |
 
 
 ## Events
 
-| Event                        | Description | Type                                                                                        |
-| ---------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
-| `omega-trim.property-change` |             | `CustomEvent<{ identity: number; e_value: number; similarity: number; coverage: number; }>` |
+| Event                        | Description                       | Type                                                                                        |
+| ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
+| `omega-trim.property-change` | Fires when a input value changes. | `CustomEvent<{ identity: number; e_value: number; similarity: number; coverage: number; }>` |
 
 
 ## Dependencies
