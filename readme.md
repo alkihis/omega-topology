@@ -224,5 +224,12 @@ You can relies to `FrontTopology` in order to do some action, like trigger a gra
 
 For other graph events, try instead to emit events and catch them in the `omega-graph` component, if the graph is directly concerned.
 
+## Configuration
 
+Some components take some default values in order to be correctly displayed to the user.
+
+`omega-trim` needs default values to set the minimum values of the range inputs.
+Those default values are set in the `BASE_FIXES` constant defined in `src/utils.ts`. Please note that some others constants as the micro-services URLs are defined in this file.
+
+**Warning**: `src/utils.ts` will be overwritten by `src/utils.sample.ts` on production mode. **Please make sure that the changes made in one of those files are correctly made on the other file**.
 

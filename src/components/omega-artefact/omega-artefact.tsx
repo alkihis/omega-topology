@@ -105,7 +105,7 @@ export class OmegaArtefact {
           target: id2
         }, [{
           mi_ids: [idMethod],
-          tax_ids: [FrontTopology.topo.taxomic_id],
+          tax_id1: FrontTopology.topo.taxomic_id,
           id1, id2,
           pubmed_ids: ["000000"]
         }]);
