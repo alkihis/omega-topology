@@ -1238,7 +1238,7 @@ export class OmegaGraph {
         const lines: PSQData[] = [].concat(...link.misc.mitabCouples.map(e => e.map(d => d.data)));
 
         for (const line of lines) {
-          acc += `${id1}\t${id2}\t${best_identity}\t` + line.toString();
+          acc += `${id1}\t${id2}\t${best_identity}\t` + line.toString() + "\n";
         }
 
         return acc;
