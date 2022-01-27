@@ -43,7 +43,7 @@
     "python-zip": "^1.0.5",
     "rollup-plugin-node-builtins": "^2.1.2",
     "socket.io-client": "^2.2.0",
-    "three": "^0.106.2",
+    "three": "^0.137.0",
     "timerize": "^1.0.3",
     "xolor": "^1.2.0"
   }
